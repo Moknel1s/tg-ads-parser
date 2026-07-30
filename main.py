@@ -69,12 +69,12 @@ async def main() -> None:
     # 4. Инициализируем базу данных
     await db.init_db()
 
-    # 5. Запускаем планировщик автопарсинга
-    scheduler = setup_scheduler(bot, config.ADMIN_ID)
+    # 5. Запускаем планировщик автопарсинга (объявления идут в TARGET_CHAT_ID)
+    scheduler = setup_scheduler(bot, config.TARGET_CHAT_ID)
     scheduler.start()
 
     # 6. Делаем первый прогон парсинга при старте (не блокируем запуск бота)
-    asyncio.create_task(run_parsing(bot, config.ADMIN_ID))
+    asyncio.create_task(run_parsing(bot, config.TARGET_CHAT_ID))
 
     log.info("Бот запущен. Ожидаю команды…")
     try:

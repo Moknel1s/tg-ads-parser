@@ -19,7 +19,7 @@ from aiogram import Router
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import Message
 
-from config import ADMIN_ID
+from config import TARGET_CHAT_ID
 from database import db
 from parsers import get_parsers
 from scheduler.jobs import LAST_RUN_STATS, SOURCE_TITLES, run_parsing
@@ -136,8 +136,8 @@ async def cmd_del_keyword(message: Message, command: CommandObject) -> None:
 async def cmd_parse_now(message: Message) -> None:
     await message.answer("🔄 Запускаю проверку сайтов прямо сейчас…")
 
-    # Кому слать результаты: админу из .env, иначе — тому, кто написал
-    target = ADMIN_ID or message.chat.id
+    # Куда слать результаты: в целевой чат из .env, иначе — туда, откуда команда
+    target = TARGET_CHAT_ID or message.chat.id
     new_count = await run_parsing(message.bot, target)
 
     await message.answer(f"✅ Готово. Новых объявлений: <b>{new_count}</b>")

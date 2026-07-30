@@ -43,14 +43,47 @@ def _get_float(name: str, default: float) -> float:
         return default
 
 
+def _get_int_list(name: str, default: list[int]) -> list[int]:
+    """
+    Читает список целых чисел из переменной окружения.
+    Разделители — запятая или точка с запятой. Пустое значение → default.
+    Пример: ADMIN_IDS=1107340556, 222333444
+    """
+    raw = os.getenv(name)
+    if not raw:
+        return default
+    result: list[int] = []
+    for part in raw.replace(";", ",").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            result.append(int(part))
+        except ValueError:
+            continue
+    return result or default
+
+
 # ---------------------------------------------------------------------------
 #  Telegram
 # ---------------------------------------------------------------------------
 # Токен бота (обязательно, берётся у @BotFather)
 BOT_TOKEN: str = os.getenv("BOT_TOKEN", "").strip()
 
-# Ваш личный Telegram ID: сюда бот шлёт объявления и только вы можете им управлять
-ADMIN_ID: int = _get_int("ADMIN_ID", 0)
+# Старая переменная ADMIN_ID оставлена для обратной совместимости:
+# если новые переменные ниже не заданы — используются её значения.
+_LEGACY_ADMIN_ID: int = _get_int("ADMIN_ID", 0)
+
+# Куда бот присылает найденные объявления.
+# Может быть вашим личным ID ИЛИ ID группы/канала (у групп он отрицательный).
+# Если бот шлёт в группу — не забудьте добавить бота в эту группу.
+TARGET_CHAT_ID: int = _get_int("TARGET_CHAT_ID", _LEGACY_ADMIN_ID)
+
+# Кто может управлять ботом (командами). Список личных ID через запятую.
+# Это ВСЕГДА личные (положительные) ID людей, а не ID группы.
+ADMIN_IDS: list[int] = _get_int_list(
+    "ADMIN_IDS", [_LEGACY_ADMIN_ID] if _LEGACY_ADMIN_ID else []
+)
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +174,8 @@ def validate() -> list[str]:
     errors: list[str] = []
     if not BOT_TOKEN:
         errors.append("BOT_TOKEN не задан в .env")
-    if not ADMIN_ID:
-        errors.append("ADMIN_ID не задан в .env")
+    if not TARGET_CHAT_ID:
+        errors.append("TARGET_CHAT_ID не задан в .env (куда слать объявления)")
+    if not ADMIN_IDS:
+        errors.append("ADMIN_IDS не задан в .env (кто управляет ботом)")
     return errors

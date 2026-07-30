@@ -123,10 +123,11 @@ async def _send_ad(bot: Bot, chat_id: int, ad: Ad) -> bool:
 # ---------------------------------------------------------------------------
 #  Основной проход парсинга
 # ---------------------------------------------------------------------------
-async def run_parsing(bot: Bot, admin_id: int) -> int:
+async def run_parsing(bot: Bot, target_chat_id: int) -> int:
     """
-    Один полный проход парсинга. Возвращает количество новых отправленных
-    объявлений. Защищён блокировкой от одновременного запуска.
+    Один полный проход парсинга. Объявления отправляются в target_chat_id
+    (личка или группа). Возвращает количество новых отправленных объявлений.
+    Защищён блокировкой от одновременного запуска.
     """
     if _lock.locked():
         log.info("Парсинг уже выполняется — пропускаю повторный запуск.")
@@ -160,7 +161,7 @@ async def run_parsing(bot: Bot, admin_id: int) -> int:
                     continue
                 # 3) отправляем; помечаем «увиденным» только при успешной доставке,
                 #    чтобы при неудаче объявление пришло в следующий цикл
-                sent = await _send_ad(bot, admin_id, ad)
+                sent = await _send_ad(bot, target_chat_id, ad)
                 if sent:
                     await db.mark_seen(ad.uid, ad.source, ad.title, ad.url, ad.price)
                     new_count += 1
@@ -176,10 +177,11 @@ async def run_parsing(bot: Bot, admin_id: int) -> int:
 # ---------------------------------------------------------------------------
 #  Настройка планировщика
 # ---------------------------------------------------------------------------
-def setup_scheduler(bot: Bot, admin_id: int) -> AsyncIOScheduler:
+def setup_scheduler(bot: Bot, target_chat_id: int) -> AsyncIOScheduler:
     """
     Настраивает APScheduler на автозапуск парсинга.
 
+    target_chat_id — куда слать найденные объявления (личка или группа).
     Базовый интервал — PARSE_INTERVAL_MIN минут, плюс случайный «джиттер»
     до (MAX-MIN) минут, чтобы запуски были не строго по таймеру.
     """
@@ -190,7 +192,7 @@ def setup_scheduler(bot: Bot, admin_id: int) -> AsyncIOScheduler:
     scheduler.add_job(
         run_parsing,
         trigger=IntervalTrigger(minutes=PARSE_INTERVAL_MIN, jitter=jitter_seconds),
-        args=[bot, admin_id],
+        args=[bot, target_chat_id],
         id="parse_job",
         max_instances=1,      # не запускать параллельно самих себя
         coalesce=True,        # если пропустили запуск — не копить очередь

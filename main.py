@@ -43,6 +43,29 @@ def setup_logging() -> None:
 log = logging.getLogger("main")
 
 
+async def send_shutdown_notice(bot: Bot) -> None:
+    """
+    Отправляет сообщение о техническом обслуживании прямо перед выключением бота.
+    Шлём в целевой чат (TARGET_CHAT_ID). Любые ошибки перехватываем, чтобы
+    остановка бота происходила в любом случае (даже если чат недоступен).
+    """
+    if not config.TARGET_CHAT_ID:
+        return
+    text = (
+        "🛠 <b>Бот на техническом обслуживании</b>\n\n"
+        "Временно остановлен — поиск новых объявлений приостановлен. "
+        "Вернусь в строй, как только обслуживание завершится."
+    )
+    try:
+        # Тайм-аут, чтобы «висящая» сеть не задерживала выключение бота
+        await asyncio.wait_for(
+            bot.send_message(config.TARGET_CHAT_ID, text), timeout=10
+        )
+        log.info("Отправлено уведомление о техобслуживании.")
+    except Exception as exc:  # noqa: BLE001 — остановка не должна падать из-за этого
+        log.warning("Не удалось отправить уведомление о выключении: %s", exc)
+
+
 async def main() -> None:
     setup_logging()
 
@@ -84,6 +107,8 @@ async def main() -> None:
     finally:
         # Аккуратно гасим всё при остановке
         scheduler.shutdown(wait=False)
+        # Сообщаем в чат, что бот уходит на техобслуживание (до закрытия сессии!)
+        await send_shutdown_notice(bot)
         await db.close_db()
         await bot.session.close()
         log.info("Бот остановлен.")

@@ -29,6 +29,8 @@ DESC_SELECTOR = ".b-post__txt, .b-layout__txt, .project-description"       # о�
 class FLruParser(BaseParser):
     name = "flru"
     title = "FL.ru (проекты)"
+    country = "ru"
+    enabled_default = True
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
         if USE_DYNAMIC:
@@ -58,7 +60,7 @@ class FLruParser(BaseParser):
             description = desc_el.get_text(" ", strip=True) if desc_el else ""
 
             ads.append(
-                Ad(title=title, url=url, source=self.name,
+                Ad(title=title, url=url, source=self.name, country=self.country,
                    description=description, price=price)
             )
         return ads

@@ -21,6 +21,8 @@ PROJECT_URL = "https://kwork.ru/projects/{id}/view"
 class KworkParser(BaseParser):
     name = "kwork"
     title = "Kwork (биржа проектов)"
+    country = "ru"
+    enabled_default = True
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
         html = await self._get_html(LIST_URL)
@@ -48,6 +50,7 @@ class KworkParser(BaseParser):
                     title=name,
                     url=PROJECT_URL.format(id=wid),
                     source=self.name,
+                    country=self.country,
                     description=(w.get("description") or "").strip(),
                     price=_format_price(w),
                 )

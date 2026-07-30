@@ -1,44 +1,123 @@
 """
-Реестр парсеров.
+Реестр парсеров (по странам).
 
-Чтобы ДОБАВИТЬ НОВЫЙ САЙТ:
-  1. Создайте файл parsers/mysite.py с классом-наследником BaseParser.
-  2. Импортируйте его здесь и добавьте в словарь _ALL.
-  3. (Опционально) добавьте флаг SITE_MYSITE в config.SITES_ENABLED и .env.
-Всё остальное (расписание, дедупликация, отправка) заработает автоматически.
+Как ДОБАВИТЬ НОВЫЙ САЙТ:
+  1. Создайте класс-наследник ConfigurableHTMLParser (или BaseParser для
+     нестандартных случаев) в файле нужной страны:
+     parsers/ru_extra.py, parsers/uz.py, parsers/us.py, parsers/gb.py,
+     parsers/au.py — или в отдельном файле.
+     Обязательно задайте: name, title, country, enabled_default и селекторы.
+  2. Импортируйте класс здесь и добавьте его в список _ALL.
+Всё остальное (расписание, фильтрация, дедуп, флаги, вкл/выкл) заработает само.
+
+Как ДОБАВИТЬ НОВУЮ СТРАНУ:
+  1. Добавьте её в config.COUNTRIES (код + флаг + название).
+  2. Проставляйте этот код в атрибуте country у парсеров этой страны.
+
+Включение/выключение:
+  * страна целиком:  COUNTRY_RU=0  в .env
+  * отдельный сайт:  SITE_KWORK=0  (или SITE_UPWORK=1, чтобы включить)
 """
-from config import SITES_ENABLED
+import config
 
 from .avito import AvitoParser
-from .base import Ad, BaseParser
+from .au import AirtaskerParser, IndeedAuParser, SeekParser
+from .base import Ad, BaseParser, ConfigurableHTMLParser
 from .flru import FLruParser
+from .gb import BarkParser, GumtreeUkParser, PeoplePerHourParser, YunoJunoParser
 from .hh import HHParser
 from .kwork import KworkParser
+from .ru_extra import (
+    FreelanceRuParser,
+    HabrFreelanceParser,
+    ProfiRuParser,
+    WeblancerParser,
+    WorkspaceParser,
+    WorkzillaParser,
+)
+from .us import (
+    CraigslistParser,
+    FiverrParser,
+    FreelancerComParser,
+    GuruParser,
+    RedditParser,
+    ThumbtackParser,
+    UpworkParser,
+)
+from .uz import (
+    DoworkUzParser,
+    EdcSaleParser,
+    GiglancerParser,
+    InfoShopUzParser,
+    OlxUzParser,
+    UzitHubParser,
+    WorklanceParser,
+)
 from .youdo import YouDoParser
 
-# Соответствие «ключ сайта → класс парсера».
-# Ключ должен совпадать с ключом в config.SITES_ENABLED.
-_ALL: dict[str, type[BaseParser]] = {
-    "avito": AvitoParser,
-    "youdo": YouDoParser,
-    "flru": FLruParser,
-    "kwork": KworkParser,
-    "hh": HHParser,
-}
+# Полный список классов парсеров, сгруппированный по странам.
+_ALL: list[type[BaseParser]] = [
+    # 🇷🇺 Россия
+    HHParser, KworkParser, FLruParser, YouDoParser, AvitoParser,
+    FreelanceRuParser, WeblancerParser, HabrFreelanceParser,
+    WorkzillaParser, ProfiRuParser, WorkspaceParser,
+    # 🇺🇿 Узбекистан
+    OlxUzParser, DoworkUzParser, UzitHubParser, GiglancerParser,
+    WorklanceParser, EdcSaleParser, InfoShopUzParser,
+    # 🇺🇸 США (+ глобальные маркетплейсы)
+    RedditParser, CraigslistParser, UpworkParser, FiverrParser,
+    FreelancerComParser, GuruParser, ThumbtackParser,
+    # 🇬🇧 Великобритания
+    PeoplePerHourParser, BarkParser, GumtreeUkParser, YunoJunoParser,
+    # 🇦🇺 Австралия
+    AirtaskerParser, SeekParser, IndeedAuParser,
+]
+
+
+def _is_enabled(parser: BaseParser) -> bool:
+    """
+    Сайт активен, если ВКЛючена его страна И включён сам сайт.
+    Страна: COUNTRY_<CODE> в .env (по умолчанию вкл).
+    Сайт:   SITE_<NAME> в .env (по умолчанию — из enabled_default класса).
+    """
+    country_on = config.COUNTRIES_ENABLED.get(parser.country, True)
+    site_on = config.env_bool(f"SITE_{parser.name.upper()}", parser.enabled_default)
+    return country_on and site_on
 
 
 def get_parsers() -> list[BaseParser]:
-    """
-    Создаёт по одному экземпляру каждого парсера и проставляет флаг enabled
-    из конфига. Возвращает список всех парсеров (включая выключенные — их
-    отфильтрует safe_fetch()).
-    """
+    """Создаёт по одному экземпляру каждого парсера с вычисленным enabled."""
     parsers: list[BaseParser] = []
-    for key, cls in _ALL.items():
+    for cls in _ALL:
         parser = cls()
-        parser.enabled = SITES_ENABLED.get(key, True)
+        parser.enabled = _is_enabled(parser)
         parsers.append(parser)
     return parsers
 
 
-__all__ = ["Ad", "BaseParser", "get_parsers"]
+def all_sites() -> list[dict]:
+    """
+    Метаданные всех сайтов (без сетевых запросов): для команд /sites и /countries
+    и для подписи источника в сообщениях.
+    """
+    result = []
+    for cls in _ALL:
+        result.append({
+            "name": cls.name,
+            "title": cls.title,
+            "country": cls.country,
+            "enabled": config.COUNTRIES_ENABLED.get(cls.country, True)
+                       and config.env_bool(f"SITE_{cls.name.upper()}", cls.enabled_default),
+        })
+    return result
+
+
+def site_titles() -> dict[str, str]:
+    """Словарь {машинный ключ сайта: человекочитаемое название}."""
+    return {cls.name: cls.title for cls in _ALL}
+
+
+__all__ = [
+    "Ad", "BaseParser", "ConfigurableHTMLParser",
+    "get_parsers", "all_sites", "site_titles",
+]

@@ -1,14 +1,14 @@
 """
 Обработчики команд бота.
 
-Команды:
   /start        — запуск и краткая инструкция
-  /status       — статус (активные сайты, последний парсинг, новых за сегодня)
-  /keywords     — показать текущие ключевые слова
+  /status       — статус (страны, сайты, последний парсинг, новых за сегодня)
+  /keywords     — показать текущие ключевые слова услуг
   /add_keyword  — добавить ключевое слово
   /del_keyword  — удалить ключевое слово
   /parse_now    — принудительно запустить парсинг прямо сейчас
-  /sites        — список подключённых сайтов и их статус
+  /sites        — список сайтов по странам и их статус
+  /countries    — список стран, их вкл/выкл и число активных сайтов
 """
 from __future__ import annotations
 
@@ -19,14 +19,14 @@ from aiogram import Router
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import Message
 
+import config
 from config import TARGET_CHAT_ID
 from database import db
-from parsers import get_parsers
-from scheduler.jobs import LAST_RUN_STATS, SOURCE_TITLES, run_parsing
+from parsers import all_sites
+from scheduler.jobs import LAST_RUN_STATS, run_parsing
 
 log = logging.getLogger(__name__)
 
-# Роутер, в который собраны все обработчики. Подключается в main.py.
 router = Router(name="commands")
 
 
@@ -36,15 +36,18 @@ router = Router(name="commands")
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
     text = (
-        "👋 <b>Привет! Я слежу за объявлениями, где ищут исполнителя.</b>\n\n"
-        "Я регулярно проверяю сайты (Avito, YouDo, FL.ru, Kwork, HH.ru) и, "
-        "как только нахожу новое подходящее объявление, сразу присылаю его сюда.\n\n"
+        "👋 <b>Я ищу заказы под услуги Loomis.uz</b>\n\n"
+        "Слежу за досками объявлений и фриланс-биржами в 🇷🇺 🇺🇿 🇺🇸 🇬🇧 🇦🇺 "
+        "и присылаю только то, что связано с разработкой digital-продуктов: "
+        "сайты, веб-приложения, CRM/ERP, SaaS, ИИ-решения, Telegram-боты, "
+        "интеграции и автоматизация.\n\n"
         "<b>Команды:</b>\n"
         "/status — что сейчас происходит\n"
-        "/sites — список сайтов и их статус\n"
-        "/keywords — мои ключевые слова\n"
-        "/add_keyword &lt;слово&gt; — добавить ключевое слово\n"
-        "/del_keyword &lt;слово&gt; — удалить ключевое слово\n"
+        "/countries — страны и их статус\n"
+        "/sites — сайты по странам\n"
+        "/keywords — ключевые слова услуг\n"
+        "/add_keyword &lt;слово&gt; — добавить\n"
+        "/del_keyword &lt;слово&gt; — удалить\n"
         "/parse_now — проверить прямо сейчас\n\n"
         "🔎 Парсинг запускается автоматически каждые несколько минут."
     )
@@ -56,8 +59,9 @@ async def cmd_start(message: Message) -> None:
 # ---------------------------------------------------------------------------
 @router.message(Command("status"))
 async def cmd_status(message: Message) -> None:
-    parsers = get_parsers()
-    active = [p for p in parsers if p.enabled]
+    sites = all_sites()
+    active_sites = [s for s in sites if s["enabled"]]
+    active_countries = [c for c, on in config.COUNTRIES_ENABLED.items() if on]
 
     last_parse = await db.get_last_parse()
     last_parse_str = last_parse.replace("T", " ") if last_parse else "ещё не запускался"
@@ -67,7 +71,8 @@ async def cmd_status(message: Message) -> None:
 
     text = (
         "📊 <b>Статус</b>\n\n"
-        f"🌐 Активных сайтов: <b>{len(active)}</b> из {len(parsers)}\n"
+        f"🗺 Стран активно: <b>{len(active_countries)}</b> из {len(config.COUNTRIES)}\n"
+        f"🌐 Сайтов активно: <b>{len(active_sites)}</b> из {len(sites)}\n"
         f"🕒 Последний парсинг: <b>{last_parse_str}</b>\n"
         f"🆕 Новых объявлений за сегодня: <b>{today}</b>\n"
         f"🔑 Ключевых слов: <b>{len(keywords)}</b>"
@@ -84,9 +89,11 @@ async def cmd_keywords(message: Message) -> None:
     if not keywords:
         await message.answer("Список ключевых слов пуст. Добавьте через /add_keyword")
         return
-
     items = "\n".join(f"• {html.escape(k)}" for k in keywords)
-    await message.answer(f"🔑 <b>Ключевые слова ({len(keywords)}):</b>\n{items}")
+    # Ограничиваем длину, чтобы не превысить лимит Telegram (4096 символов)
+    if len(items) > 3500:
+        items = items[:3500] + "\n…"
+    await message.answer(f"🔑 <b>Ключевые слова услуг ({len(keywords)}):</b>\n{items}")
 
 
 # ---------------------------------------------------------------------------
@@ -98,10 +105,9 @@ async def cmd_add_keyword(message: Message, command: CommandObject) -> None:
     if not word:
         await message.answer(
             "Укажите слово или фразу после команды.\n"
-            "Пример: <code>/add_keyword нужен сайт</code>"
+            "Пример: <code>/add_keyword нужна CRM</code>"
         )
         return
-
     added = await db.add_keyword(word)
     if added:
         await message.answer(f"✅ Добавил ключевое слово: <b>{html.escape(word)}</b>")
@@ -118,10 +124,9 @@ async def cmd_del_keyword(message: Message, command: CommandObject) -> None:
     if not word:
         await message.answer(
             "Укажите слово, которое нужно удалить.\n"
-            "Пример: <code>/del_keyword нужен сайт</code>"
+            "Пример: <code>/del_keyword saas</code>"
         )
         return
-
     deleted = await db.del_keyword(word)
     if deleted:
         await message.answer(f"🗑 Удалил ключевое слово: <b>{html.escape(word)}</b>")
@@ -135,35 +140,62 @@ async def cmd_del_keyword(message: Message, command: CommandObject) -> None:
 @router.message(Command("parse_now"))
 async def cmd_parse_now(message: Message) -> None:
     await message.answer("🔄 Запускаю проверку сайтов прямо сейчас…")
-
-    # Куда слать результаты: в целевой чат из .env, иначе — туда, откуда команда
     target = TARGET_CHAT_ID or message.chat.id
     new_count = await run_parsing(message.bot, target)
-
     await message.answer(f"✅ Готово. Новых объявлений: <b>{new_count}</b>")
 
 
 # ---------------------------------------------------------------------------
-#  /sites
+#  /sites — список сайтов, сгруппированный по странам
 # ---------------------------------------------------------------------------
 @router.message(Command("sites"))
 async def cmd_sites(message: Message) -> None:
-    parsers = get_parsers()
-    lines = ["🌐 <b>Подключённые сайты:</b>", ""]
+    sites = all_sites()
+    by_country: dict[str, list[dict]] = {}
+    for s in sites:
+        by_country.setdefault(s["country"], []).append(s)
 
-    for p in parsers:
-        status = "🟢 вкл" if p.enabled else "⚪️ выкл"
-        title = SOURCE_TITLES.get(p.name, p.title)
+    lines = ["🌐 <b>Сайты по странам</b>", ""]
+    for code, meta in config.COUNTRIES.items():
+        group = by_country.get(code, [])
+        if not group:
+            continue
+        country_on = config.COUNTRIES_ENABLED.get(code, True)
+        suffix = "" if country_on else " — <i>страна выключена</i>"
+        lines.append(f"{meta['flag']} <b>{meta['name']}</b>{suffix}")
+        for s in group:
+            status = "🟢" if s["enabled"] else "⚪️"
+            last = LAST_RUN_STATS.get(s["name"])
+            extra = f" · {last} шт." if isinstance(last, int) else ""
+            lines.append(f"  {status} {html.escape(s['title'])}{extra}")
+        lines.append("")
 
-        # Результат последнего прогона (если был)
-        last = LAST_RUN_STATS.get(p.name)
-        if last == "error":
-            extra = " — ⚠️ ошибка в прошлый раз"
-        elif isinstance(last, int):
-            extra = f" — получено {last} в прошлый раз"
-        else:
-            extra = ""
+    lines.append("🟢 включён · ⚪️ выключен. Управление: <code>SITE_KWORK=0</code> в .env")
+    await message.answer("\n".join(lines))
 
-        lines.append(f"{status} — <b>{html.escape(title)}</b>{extra}")
 
+# ---------------------------------------------------------------------------
+#  /countries — страны и их статус
+# ---------------------------------------------------------------------------
+@router.message(Command("countries"))
+async def cmd_countries(message: Message) -> None:
+    sites = all_sites()
+    lines = ["🗺 <b>Страны</b>", ""]
+    for code, meta in config.COUNTRIES.items():
+        group = [s for s in sites if s["country"] == code]
+        if not group:
+            continue
+        on = config.COUNTRIES_ENABLED.get(code, True)
+        enabled_cnt = sum(1 for s in group if s["enabled"])
+        mark = "🟢 вкл" if on else "⚪️ выкл"
+        lines.append(
+            f"{meta['flag']} <b>{meta['name']}</b> — {mark} · "
+            f"активных сайтов {enabled_cnt}/{len(group)}"
+        )
+
+    lines.append("")
+    lines.append(
+        "Выключить страну: <code>COUNTRY_UZ=0</code> в .env. "
+        "Отдельный сайт: <code>SITE_UPWORK=1</code>."
+    )
     await message.answer("\n".join(lines))

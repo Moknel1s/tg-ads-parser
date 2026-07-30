@@ -1,12 +1,13 @@
 """
 Ядро парсинга и планировщик.
 
-Здесь:
-  * run_parsing()    — один полный проход: опросить все сайты параллельно,
-                       отфильтровать по ключевым словам, отсеять дубли и
-                       отправить новые объявления в личку;
-  * setup_scheduler()— настраивает APScheduler на автозапуск каждые 7–10 минут;
-  * LAST_RUN_STATS   — статистика последнего прогона (для команд /status и /sites).
+  * run_parsing()     — один полный проход: опросить сайты параллельно,
+                        отфильтровать по услугам Loomis, отсеять дубли и
+                        отправить новые объявления в целевой чат;
+  * setup_scheduler() — автозапуск каждые PARSE_INTERVAL_MIN..MAX минут;
+  * is_relevant()     — фильтр «только услуги Loomis»;
+  * format_message()  — красивое сообщение с флагом страны;
+  * LAST_RUN_STATS    — статистика последнего прогона (для /status, /sites).
 """
 from __future__ import annotations
 
@@ -21,83 +22,86 @@ from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
+import config
 from bot.keyboards import ad_keyboard
-from config import PARSE_INTERVAL_MAX, PARSE_INTERVAL_MIN
 from database import db
-from parsers import Ad, get_parsers
+from parsers import Ad, get_parsers, site_titles
 
 log = logging.getLogger(__name__)
 
-# Блокировка, чтобы два парсинга не запускались одновременно
-# (например, автозапуск по расписанию + ручной /parse_now).
+# Блокировка, чтобы два парсинга не запускались одновременно.
 _lock = asyncio.Lock()
 
 # Статистика последнего прогона: имя сайта -> сколько объявлений получено.
-# Используется командами /status и /sites. "error" — если сайт упал.
-LAST_RUN_STATS: dict[str, str | int] = {}
+LAST_RUN_STATS: dict[str, int] = {}
 
-# Человекочитаемые названия источников для сообщений
-SOURCE_TITLES = {
-    "avito": "Avito",
-    "youdo": "YouDo",
-    "flru": "FL.ru",
-    "kwork": "Kwork",
-    "hh": "HH.ru",
-}
+# Человекочитаемые названия источников (строится из реестра парсеров).
+SOURCE_TITLES: dict[str, str] = site_titles()
 
 
 # ---------------------------------------------------------------------------
-#  Фильтрация по ключевым словам
+#  Фильтрация «только услуги Loomis»
 # ---------------------------------------------------------------------------
 def _normalize(text: str) -> str:
-    """Приводит текст к нижнему регистру и заменяет ё→е для устойчивого поиска."""
+    """Нижний регистр + ё→е для устойчивого поиска."""
     return text.lower().replace("ё", "е")
 
 
-def keyword_match(ad: Ad, keywords: list[str]) -> bool:
+def is_relevant(ad: Ad, keywords: list[str]) -> bool:
     """
-    True, если в заголовке или описании объявления встречается
-    хотя бы одно ключевое слово. Если ключевых слов нет — пропускаем всё.
+    True, если объявление относится к услугам Loomis:
+      1) содержит хотя бы одно сервисное ключевое слово;
+      2) НЕ содержит стоп-слов (дизайн логотипов, SMM, SEO без разработки,
+         курьеры и т.п.) — но если есть явный признак разработки, стоп-слово
+         игнорируется.
     """
-    if not keywords:
-        return True
     blob = _normalize(ad.text_blob())
-    return any(_normalize(kw) in blob for kw in keywords)
+    if not blob:
+        return False
+
+    # 1) должно быть хотя бы одно ключевое слово услуги
+    if not any(_normalize(kw) in blob for kw in keywords):
+        return False
+
+    # 2) стоп-слова исключают, если рядом нет признака разработки
+    if any(_normalize(s) in blob for s in config.STOP_KEYWORDS):
+        if not any(_normalize(d) in blob for d in config.DEV_INDICATORS):
+            return False
+
+    return True
 
 
 # ---------------------------------------------------------------------------
 #  Форматирование и отправка сообщения
 # ---------------------------------------------------------------------------
 def format_message(ad: Ad) -> str:
-    """Собирает красивое HTML-сообщение по объявлению."""
+    """Собирает сообщение по объявлению с флагом страны источника."""
+    flag = config.country_flag(ad.country)
     source = SOURCE_TITLES.get(ad.source, ad.source)
-    title = html.escape(ad.title)
 
-    lines = [f"🆕 <b>{title}</b>", ""]
+    lines = [f"{flag} <b>Новое объявление</b>", ""]
+    lines.append(f"<b>Источник:</b> {html.escape(source)}")
+    lines.append(f"<b>Заголовок:</b> {html.escape(ad.title)}")
 
     if ad.description:
-        # Обрезаем описание, чтобы сообщение не было слишком длинным
         desc = ad.description.strip()
         if len(desc) > 400:
             desc = desc[:400].rstrip() + "…"
-        lines.append(html.escape(desc))
-        lines.append("")
+        lines.append(f"<b>Краткое описание:</b> {html.escape(desc)}")
 
-    if ad.price:
-        lines.append(f"💰 <b>Бюджет:</b> {html.escape(ad.price)}")
+    lines.append(f"<b>Бюджет/цена:</b> {html.escape(ad.price) if ad.price else '—'}")
 
-    lines.append(f"🌐 <b>Источник:</b> {html.escape(source)}")
-    lines.append(f"🕒 <b>Найдено:</b> {ad.found_at.strftime('%d.%m.%Y %H:%M')}")
+    if ad.url:
+        lines.append(f"<b>Ссылка:</b> {html.escape(ad.url)}")
 
     return "\n".join(lines)
 
 
 async def _send_ad(bot: Bot, chat_id: int, ad: Ad) -> bool:
     """
-    Отправляет одно объявление в личку с кнопкой «Открыть объявление».
-    Возвращает True при успешной доставке и False, если отправить не удалось
-    (например, вы ещё не нажали боту /start или заблокировали его).
-    Любые ошибки перехватываются — падения бота не происходит.
+    Отправляет объявление с кнопкой «Открыть объявление».
+    Возвращает True при успехе, False при ошибке (ошибки перехватываются,
+    чтобы остановка/цикл не падали).
     """
     text = format_message(ad)
     keyboard = ad_keyboard(ad.url) if ad.url else None
@@ -105,7 +109,6 @@ async def _send_ad(bot: Bot, chat_id: int, ad: Ad) -> bool:
         await bot.send_message(chat_id, text, reply_markup=keyboard)
         return True
     except TelegramRetryAfter as exc:
-        # Telegram просит подождать (флуд-контроль) — ждём и пробуем ещё раз
         log.warning("Флуд-контроль Telegram, ждём %s c.", exc.retry_after)
         await asyncio.sleep(exc.retry_after + 1)
         try:
@@ -115,7 +118,6 @@ async def _send_ad(bot: Bot, chat_id: int, ad: Ad) -> bool:
             log.warning("Не удалось отправить объявление: %s", exc2)
             return False
     except TelegramAPIError as exc:
-        # Например: пользователь не начал диалог с ботом или заблокировал его
         log.warning("Не удалось отправить объявление: %s", exc)
         return False
 
@@ -125,9 +127,8 @@ async def _send_ad(bot: Bot, chat_id: int, ad: Ad) -> bool:
 # ---------------------------------------------------------------------------
 async def run_parsing(bot: Bot, target_chat_id: int) -> int:
     """
-    Один полный проход парсинга. Объявления отправляются в target_chat_id
-    (личка или группа). Возвращает количество новых отправленных объявлений.
-    Защищён блокировкой от одновременного запуска.
+    Один полный проход парсинга. Объявления идут в target_chat_id.
+    Возвращает количество новых отправленных объявлений.
     """
     if _lock.locked():
         log.info("Парсинг уже выполняется — пропускаю повторный запуск.")
@@ -140,12 +141,9 @@ async def run_parsing(bot: Bot, target_chat_id: int) -> int:
         keywords = await db.get_keywords()
         parsers = [p for p in get_parsers() if p.enabled]
 
-        # Опрашиваем все сайты ПАРАЛЛЕЛЬНО. safe_fetch не бросает исключений.
-        results = await asyncio.gather(
-            *(p.safe_fetch(keywords) for p in parsers)
-        )
+        # Опрашиваем все включённые сайты ПАРАЛЛЕЛЬНО.
+        results = await asyncio.gather(*(p.safe_fetch(keywords) for p in parsers))
 
-        # Обновляем статистику по каждому сайту
         LAST_RUN_STATS.clear()
         new_count = 0
 
@@ -153,19 +151,17 @@ async def run_parsing(bot: Bot, target_chat_id: int) -> int:
             LAST_RUN_STATS[parser.name] = len(ads)
 
             for ad in ads:
-                # 1) фильтр по ключевым словам
-                if not keyword_match(ad, keywords):
+                # 1) фильтр «только услуги Loomis»
+                if not is_relevant(ad, keywords):
                     continue
-                # 2) защита от дублей
+                # 2) защита от дублей (по ссылке)
                 if await db.is_seen(ad.uid):
                     continue
-                # 3) отправляем; помечаем «увиденным» только при успешной доставке,
-                #    чтобы при неудаче объявление пришло в следующий цикл
+                # 3) отправляем; помечаем «увиденным» только при успешной доставке
                 sent = await _send_ad(bot, target_chat_id, ad)
                 if sent:
                     await db.mark_seen(ad.uid, ad.source, ad.title, ad.url, ad.price)
                     new_count += 1
-                    # небольшая пауза между отправками, чтобы не ловить флуд-контроль
                     await asyncio.sleep(random.uniform(0.4, 0.9))
 
         await db.set_last_parse(started)
@@ -180,26 +176,22 @@ async def run_parsing(bot: Bot, target_chat_id: int) -> int:
 def setup_scheduler(bot: Bot, target_chat_id: int) -> AsyncIOScheduler:
     """
     Настраивает APScheduler на автозапуск парсинга.
-
-    target_chat_id — куда слать найденные объявления (личка или группа).
-    Базовый интервал — PARSE_INTERVAL_MIN минут, плюс случайный «джиттер»
-    до (MAX-MIN) минут, чтобы запуски были не строго по таймеру.
+    target_chat_id — куда слать найденные объявления.
     """
     scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
-
-    jitter_seconds = max(0, (PARSE_INTERVAL_MAX - PARSE_INTERVAL_MIN) * 60)
+    jitter_seconds = max(0, (config.PARSE_INTERVAL_MAX - config.PARSE_INTERVAL_MIN) * 60)
 
     scheduler.add_job(
         run_parsing,
-        trigger=IntervalTrigger(minutes=PARSE_INTERVAL_MIN, jitter=jitter_seconds),
+        trigger=IntervalTrigger(minutes=config.PARSE_INTERVAL_MIN, jitter=jitter_seconds),
         args=[bot, target_chat_id],
         id="parse_job",
-        max_instances=1,      # не запускать параллельно самих себя
-        coalesce=True,        # если пропустили запуск — не копить очередь
+        max_instances=1,
+        coalesce=True,
         replace_existing=True,
     )
     log.info(
         "Планировщик: интервал ~%d–%d мин.",
-        PARSE_INTERVAL_MIN, PARSE_INTERVAL_MAX,
+        config.PARSE_INTERVAL_MIN, config.PARSE_INTERVAL_MAX,
     )
     return scheduler

@@ -23,6 +23,8 @@ HH_HEADERS = {"User-Agent": "tg-ads-parser/1.0 (freelance monitor)"}
 class HHParser(BaseParser):
     name = "hh"
     title = "HH.ru (вакансии)"
+    country = "ru"
+    enabled_default = True
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
         params = {
@@ -54,6 +56,7 @@ class HHParser(BaseParser):
                     title=title,
                     url=url,
                     source=self.name,
+                    country=self.country,
                     description=description,
                     price=price,
                 )

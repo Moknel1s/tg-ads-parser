@@ -34,6 +34,9 @@ DESC_SELECTOR = "[class*='description'], meta[itemprop='description']"
 class AvitoParser(BaseParser):
     name = "avito"
     title = "Avito (услуги)"
+    country = "ru"
+    # По умолчанию выключен: сильный антибот, часто отдаёт 0 без прокси.
+    enabled_default = False
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
         # Avito без рендера JS не отдаёт объявления — используем playwright
@@ -66,7 +69,7 @@ class AvitoParser(BaseParser):
                 description = desc_el.get("content") or desc_el.get_text(" ", strip=True)
 
             ads.append(
-                Ad(title=title, url=url, source=self.name,
+                Ad(title=title, url=url, source=self.name, country=self.country,
                    description=description, price=price)
             )
         return ads

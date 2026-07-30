@@ -24,6 +24,8 @@ DESC_SELECTOR = ".TasksList-itemDescription, .b-task-description"        # оп�
 class YouDoParser(BaseParser):
     name = "youdo"
     title = "YouDo (задания)"
+    country = "ru"
+    enabled_default = True
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
         html = await self._get_html(LIST_URL)
@@ -49,7 +51,7 @@ class YouDoParser(BaseParser):
             description = desc_el.get_text(" ", strip=True) if desc_el else ""
 
             ads.append(
-                Ad(title=title, url=url, source=self.name,
+                Ad(title=title, url=url, source=self.name, country=self.country,
                    description=description, price=price)
             )
         return ads

@@ -13,7 +13,7 @@ from datetime import datetime
 
 import aiosqlite
 
-from config import DB_PATH, DEFAULT_KEYWORDS
+from config import DB_PATH, DEFAULT_KEYWORDS, KEYWORDS_VERSION
 
 log = logging.getLogger(__name__)
 
@@ -53,16 +53,27 @@ async def init_db() -> None:
     )
     await _db.commit()
 
-    # Если ключевых слов ещё нет — засеваем значениями по умолчанию
-    cur = await _db.execute("SELECT COUNT(*) AS c FROM keywords")
+    # Засеваем ключевые слова услуг Loomis: при первом запуске И при повышении
+    # версии списка (KEYWORDS_VERSION). Добавляем недостающие через INSERT OR
+    # IGNORE — то, что вы добавили/оставили сами, не трогаем.
+    cur = await _db.execute("SELECT value FROM meta WHERE key = 'keywords_version'")
     row = await cur.fetchone()
-    if row and row["c"] == 0:
+    current_ver = row["value"] if row else None
+    if current_ver != KEYWORDS_VERSION:
         await _db.executemany(
             "INSERT OR IGNORE INTO keywords (word) VALUES (?)",
             [(w.lower().strip(),) for w in DEFAULT_KEYWORDS],
         )
+        await _db.execute(
+            "INSERT INTO meta (key, value) VALUES ('keywords_version', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (KEYWORDS_VERSION,),
+        )
         await _db.commit()
-        log.info("Засеяно %d ключевых слов по умолчанию", len(DEFAULT_KEYWORDS))
+        log.info(
+            "Ключевые слова обновлены до версии '%s' (%d слов по умолчанию)",
+            KEYWORDS_VERSION, len(DEFAULT_KEYWORDS),
+        )
 
     log.info("База данных готова: %s", DB_PATH)
 

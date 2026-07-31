@@ -142,6 +142,19 @@ def target_for_country(code: str, default: int) -> int:
     return COUNTRY_TARGETS.get(code) or default
 
 
+# Прокси НА КАЖДУЮ СТРАНУ (необязательно). Задаётся в .env как PROXY_URL_<КОД>,
+# напр. PROXY_URL_UA=http://user:pass@ua-proxy:8080. Если для страны не задан —
+# используется общий PROXY_URL (см. секцию «Парсинг»). Пусто = без прокси.
+PROXY_URLS: dict[str, str] = {
+    code: os.getenv(f"PROXY_URL_{code.upper()}", "").strip() for code in COUNTRIES
+}
+
+
+def proxy_for_country(code: str) -> str:
+    """Прокси для страны: PROXY_URL_<КОД> или общий PROXY_URL (или пусто)."""
+    return PROXY_URLS.get(code) or PROXY_URL
+
+
 def country_flag(code: str) -> str:
     """Возвращает флаг страны по её коду (или глобус, если код неизвестен)."""
     return COUNTRIES.get(code, {}).get("flag", "🌐")
@@ -161,7 +174,7 @@ def country_name(code: str) -> str:
 #  CRM/ERP/SaaS, ИИ-решения, Telegram-боты для бизнеса, интеграции,
 #  автоматизация, digital-продукты под ключ.
 # ---------------------------------------------------------------------------
-KEYWORDS_VERSION = "loomis-5"
+KEYWORDS_VERSION = "loomis-6"
 
 DEFAULT_KEYWORDS: list[str] = [
     # ---- Русский ----
@@ -199,6 +212,10 @@ DEFAULT_KEYWORDS: list[str] = [
     "dasturchi kerak", "dastur kerak", "bot kerak",
     "onlayn dokon", "onlayn do'kon", "ilova kerak", "avtomatlashtirish",
     "crm kerak",
+    # ---- Українська (украинский) ----
+    "розробка сайту", "потрібен сайт", "зробити сайт", "створити сайт",
+    "розроб", "лендінг", "інтернет-магазин", "веб-розробник", "розробник",
+    "застосунок", "потрібен розробник", "потрібна crm",
 ]
 
 
@@ -237,6 +254,10 @@ EMPLOYMENT_STOP_KEYWORDS: list[str] = [
     "remote position", "our team is looking", "we offer competitive",
     # ---- Oʻzbekcha ----
     "ish haqi", "oylik", "vakansiya", "jamoaga", "ish vaqti",
+    # ---- Українська ----
+    "вакансія", "повна зайнятість", "часткова зайнятість", "заробітна плата",
+    "оформлення", "випробувальний термін", "шукаємо в команду", "штатний",
+    "в команду", "резюме",
 ]
 
 # ЖЁСТКИЕ стоп-слова: исключают ВСЕГДА (даже если рядом «сайт»/разработка).
@@ -247,6 +268,8 @@ HARD_STOP_KEYWORDS: list[str] = [
     "раскрутк", "таргетолог", "таргетинг",
     "контекстная реклама", "настройка рекламы", "настройку рекламы",
     "яндекс директ", "google ads", "маркетолог",
+    # ---- Українська ----
+    "просування сайт", "просування у", "розкрутк", "таргетолог", "смм",
 ]
 
 # Признаки того, что речь всё-таки про разработку — перебивают обычные стоп-слова.
@@ -284,6 +307,9 @@ WANT_INDICATORS: list[str] = [
     "who can build", "who can make", "anyone who can",
     # ---- Oʻzbekcha ----
     "kerak", "kerakli", "izlayapman", "izlaymiz", "qidiryapman",
+    # ---- Українська ----
+    "потрібен", "потрібна", "потрібно", "потрібні", "шукаю", "шукаємо",
+    "шукається", "хто зробить", "хто може зробити", "замовлю", "потрібен виконавець",
 ]
 
 # СИЛЬНЫЕ признаки предложения — однозначно «автор сам оказывает услугу».
@@ -313,6 +339,10 @@ OFFER_INDICATORS: list[str] = [
     # ---- Oʻzbekcha ----
     "yarataman", "yaratamiz", "qilaman", "qilamiz", "ishlab beraman",
     "ishlab beramiz", "xizmatlar", "xizmatlarini taklif", "arzon", "hamyonbop",
+    # ---- Українська ----
+    "зроблю", "зробимо", "створю", "створимо", "розроблю", "розробимо",
+    "верстаю", "веб-студія", "портфоліо", "мої послуги", "наші послуги",
+    "звертайтеся", "якісно та вчасно", "недорого",
 ]
 
 # СЛАБЫЕ (неоднозначные) признаки: встречаются и в запросах («нужен разработчик

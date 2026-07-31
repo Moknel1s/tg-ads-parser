@@ -78,7 +78,7 @@ async def cmd_status(message: Message) -> None:
         f"🕒 Последний парсинг: <b>{last_parse_str}</b>\n"
         f"🆕 Новых объявлений за сегодня: <b>{today}</b>\n"
         f"🔑 Ключевых слов: <b>{len(keywords)}</b>\n"
-        f"🛰 Прокси: <b>{'включён' if config.PROXY_URL else 'выключен'}</b>"
+        f"🛰 Прокси: <b>{'включён' if (config.PROXY_URL or any(config.PROXY_URLS.values())) else 'выключен'}</b>"
     )
     await message.answer(text)
 

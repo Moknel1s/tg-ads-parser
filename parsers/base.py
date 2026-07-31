@@ -36,15 +36,15 @@ from config import (
 log = logging.getLogger(__name__)
 
 
-def _aiohttp_proxy() -> tuple[str | None, "aiohttp.BasicAuth | None"]:
+def _aiohttp_proxy(proxy_url: str) -> tuple[str | None, "aiohttp.BasicAuth | None"]:
     """
-    Возвращает (proxy_url, proxy_auth) для aiohttp из config.PROXY_URL.
+    Возвращает (proxy_url, proxy_auth) для aiohttp из переданного proxy_url.
     Логин/пароль, зашитые в URL, выносятся в BasicAuth (так надёжнее).
     (None, None) — если прокси не задан.
     """
-    if not config.PROXY_URL:
+    if not proxy_url:
         return None, None
-    parts = urlsplit(config.PROXY_URL)
+    parts = urlsplit(proxy_url)
     netloc = parts.hostname or ""
     if parts.port:
         netloc += f":{parts.port}"
@@ -54,33 +54,33 @@ def _aiohttp_proxy() -> tuple[str | None, "aiohttp.BasicAuth | None"]:
     return clean, None
 
 
-def _session_kwargs() -> tuple[dict, dict]:
+def _session_kwargs(proxy_url: str) -> tuple[dict, dict]:
     """
-    Готовит аргументы для aiohttp с учётом прокси.
+    Готовит аргументы для aiohttp с учётом прокси (proxy_url — уже для нужной страны).
     Возвращает (session_kwargs, request_kwargs):
       * http/https-прокси → передаётся per-request (proxy/proxy_auth);
       * socks5-прокси      → через connector (нужен пакет aiohttp-socks);
       * без прокси          → пустые словари.
     """
-    if not config.PROXY_URL:
+    if not proxy_url:
         return {}, {}
-    scheme = urlsplit(config.PROXY_URL).scheme.lower()
+    scheme = urlsplit(proxy_url).scheme.lower()
     if scheme.startswith("socks"):
         try:
             from aiohttp_socks import ProxyConnector
-            return {"connector": ProxyConnector.from_url(config.PROXY_URL)}, {}
+            return {"connector": ProxyConnector.from_url(proxy_url)}, {}
         except ImportError:
             log.warning("socks-прокси требует пакет aiohttp-socks — запрос идёт напрямую")
             return {}, {}
-    proxy, proxy_auth = _aiohttp_proxy()
+    proxy, proxy_auth = _aiohttp_proxy(proxy_url)
     return {}, {"proxy": proxy, "proxy_auth": proxy_auth}
 
 
-def _playwright_proxy() -> dict | None:
-    """Возвращает конфиг proxy для Playwright из config.PROXY_URL (или None)."""
-    if not config.PROXY_URL:
+def _playwright_proxy(proxy_url: str) -> dict | None:
+    """Конфиг proxy для Playwright из переданного proxy_url (или None)."""
+    if not proxy_url:
         return None
-    parts = urlsplit(config.PROXY_URL)
+    parts = urlsplit(proxy_url)
     netloc = parts.hostname or ""
     if parts.port:
         netloc += f":{parts.port}"
@@ -184,7 +184,7 @@ class BaseParser(abc.ABC):
         """GET статической страницы. Возвращает HTML/текст."""
         await self._polite_delay()
         timeout = aiohttp.ClientTimeout(total=25)
-        skw, rkw = _session_kwargs()
+        skw, rkw = _session_kwargs(config.proxy_for_country(self.country))
         async with aiohttp.ClientSession(headers=self._headers(), timeout=timeout, **skw) as session:
             async with session.get(url, params=params, **rkw) as resp:
                 resp.raise_for_status()
@@ -199,7 +199,7 @@ class BaseParser(abc.ABC):
         hdrs["Accept"] = "application/json"
         if headers:
             hdrs.update(headers)
-        skw, rkw = _session_kwargs()
+        skw, rkw = _session_kwargs(config.proxy_for_country(self.country))
         async with aiohttp.ClientSession(headers=hdrs, timeout=timeout, **skw) as session:
             async with session.get(url, params=params, **rkw) as resp:
                 resp.raise_for_status()
@@ -220,7 +220,8 @@ class BaseParser(abc.ABC):
 
         await self._polite_delay()
         async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=True, proxy=_playwright_proxy())
+            browser = await pw.chromium.launch(
+                headless=True, proxy=_playwright_proxy(config.proxy_for_country(self.country)))
             try:
                 context = await browser.new_context(
                     user_agent=random.choice(USER_AGENTS),

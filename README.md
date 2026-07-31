@@ -106,7 +106,15 @@ PROXY_URL=http://login:password@proxy.example.com:8080
 ```
 Она применяется и к обычным запросам (aiohttp), и к Playwright. Поддерживаются
 `http://`, `https://`, `socks5://`. Рекомендуется **резидентный** прокси нужной
-страны (UZ/RU). Включён ли прокси — видно в `/status`.
+страны. Включён ли прокси — видно в `/status`.
+
+**Прокси на каждую страну.** Лучше дать каждой стране свой резидентный прокси —
+переменной `PROXY_URL_<КОД>` (RU/UZ/UA/US/GB/AU). Она приоритетнее общего
+`PROXY_URL`; страны без своего прокси используют общий:
+```env
+PROXY_URL_UA=http://login:password@ua-proxy:8080
+PROXY_URL_UZ=http://login:password@uz-proxy:8080
+```
 
 ---
 

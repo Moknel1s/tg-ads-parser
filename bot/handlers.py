@@ -218,10 +218,17 @@ async def cmd_sites(message: Message) -> None:
             status = "🟢" if s["enabled"] else "⚪️"
             last = LAST_RUN_STATS.get(s["name"])
             extra = f" · {last} шт." if isinstance(last, int) else ""
-            lines.append(f"  {status} {html.escape(s['title'])}{extra}")
+            need_tag = {
+                "proxy": " · 🛰 нужен прокси",
+                "api": " · 🔑 нужен API/вход",
+            }.get(s.get("needs"), "")
+            lines.append(f"  {status} {html.escape(s['title'])}{need_tag}{extra}")
         lines.append("")
 
-    lines.append("🟢 включён · ⚪️ выключен. Управление: <code>SITE_KWORK=0</code> в .env")
+    lines.append(
+        "🟢 включён · ⚪️ выключен · 🛰 нужен прокси · 🔑 нужен API/вход\n"
+        "Управление: <code>SITE_KWORK=0</code> в .env"
+    )
     await message.answer("\n".join(lines))
 
 

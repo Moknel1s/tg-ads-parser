@@ -35,8 +35,8 @@ tg_ads_parser/
 ├── parsers/
 │   ├── __init__.py        # РЕЕСТР сайтов (добавление новых — здесь)
 │   ├── base.py            # Ad, BaseParser, ConfigurableHTMLParser, RSS-хелпер
-│   ├── hh.py kwork.py flru.py youdo.py avito.py   # 🇷🇺 отдельные парсеры
-│   ├── ru_extra.py        # 🇷🇺 Freelance.ru, Weblancer, Habr, Workzilla, Профи, Workspace
+│   ├── kwork.py flru.py youdo.py avito.py   # 🇷🇺 отдельные парсеры
+│   ├── ru_extra.py        # 🇷🇺 Freelance.ru, FreelanceSpace, Weblancer, Workzilla, Профи, Workspace
 │   ├── uz.py              # 🇺🇿 OLX.uz, Dowork, UZITHUB, Giglancer, Worklance, EDC, InfoShop
 │   ├── us.py              # 🇺🇸 Reddit, Craigslist + глобальные (Upwork, Fiverr, ...)
 │   ├── gb.py              # 🇬🇧 PeoplePerHour, Bark, Gumtree, YunoJuno
@@ -188,48 +188,41 @@ python main.py
 признаками найма (`вакансия`, `в штат`, `зарплата`, `оформление по ТК`,
 `join our team`, `full-time`, `salary`, `ish haqi`…) отсекаются — список
 `EMPLOYMENT_STOP_KEYWORDS` в `config.py`. По этой же причине доски вакансий
-(HH.ru, We Work Remotely, LinkedIn) выключены по умолчанию.
+(HH.ru, We Work Remotely, LinkedIn) в бот вообще не добавлены.
 
 ---
 
 ## 🌍 Какие сайты подключены (по факту)
 
-Реальность парсинга: часть площадок отдают данные свободно, часть требует
-авторизацию / API-ключи / прокси или имеет сильный антибот. Поэтому вторые
-**по умолчанию выключены** — код готов, но нужно добавить ключи/прокси и
-проверить селекторы, после чего включить их флагом `SITE_<КЛЮЧ>=1`.
+Регистрируются только сайты, которые **реально можно спарсить**. Мёртвые домены,
+капчу, пейвол, vetted-сети без публичной доски и доски вакансий (HH, WeWorkRemotely,
+LinkedIn…) мы НЕ добавляем.
 
-| Страна | ✅ Включены по умолчанию | ⚪️ Выключены (нужны ключи/прокси/проверка) |
-|---|---|---|
-| 🇷🇺 | FL.ru, Kwork, Freelance.ru, Workzilla, YouDo, Weblancer, Avito, Профи.ру, Workspace.ru, Habr/Фрилансим | HH.ru (доска вакансий — не заказы) |
-| 🇺🇿 | OLX.uz, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir | Worklance, UzFreelance, Freelance.admin, EDC.Sale, InfoShop (мёртвы / капча / недоступны) |
-| 🇺🇸 | Reddit (r/forhire…), Craigslist | We Work Remotely, LinkedIn (доски вакансий); Upwork, Fiverr, Freelancer.com, Guru, Thumbtack, Arc.dev, Wellfound, Contra, Gun.io, Codeable, FlexJobs, Toptal |
-| 🇬🇧 | — | PeoplePerHour, Bark, Gumtree, YunoJuno |
-| 🇦🇺 | — | Airtasker, SEEK, Indeed |
+В команде `/sites` у каждого сайта стоит пометка, что ему нужно для работы:
+- 🛰 **нужен прокси** — публичный, но с антиботом/гео (резидентный прокси нужной страны);
+- 🔑 **нужен API/вход** — требует аккаунт или официальный API;
+- без пометки — работает как есть.
 
-Заметки по России:
-- **Стабильно работают**: Kwork, FL.ru, Freelance.ru (JSON/HTML), HH (API).
+| Страна | ✅ Работают как есть | 🛰 Нужен прокси | 🔑 Нужен API/вход |
+|---|---|---|---|
+| 🇷🇺 | Kwork, FL.ru, Freelance.ru, FreelanceSpace | YouDo, Avito (услуги+вакансии), Weblancer, Workspace | Workzilla, Профи.ру |
+| 🇺🇿 | — | OLX, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir | — |
+| 🇺🇸 | — | Reddit, Craigslist | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack |
+| 🇬🇧 | — | Gumtree UK | PeoplePerHour, Bark, YunoJuno |
+| 🇦🇺 | — | Airtasker | SEEK, Indeed |
+
+Заметки:
+- **Стабильно без прокси**: Kwork, FL.ru, Freelance.ru (JSON/HTML), FreelanceSpace.
 - **Через playwright** (нужен `playwright install chromium`): YouDo, Avito,
-  Workzilla, Профи.ру, Workspace.ru. Без прокси/авторизации они часто отдают 0
-  из-за антибота — это блокировка, а не ошибка; бот при этом не падает.
-- **Habr Freelance закрыт** и переехал в **Фрилансим (freelansim.ru)** — парсим его.
-- Selector-парсеры могут требовать правки селекторов при смене вёрстки — они
-  вынесены в атрибуты классов (см. `parsers/ru_extra.py`).
-
-Прочее:
-- **Глобальные маркетплейсы** (Upwork, Fiverr, Freelancer.com) зарегистрированы
-  один раз (в `us.py`) и покрывают в т.ч. GB/AU — чтобы не плодить дубли.
-- **Vetted-сети** (Toptal, Gun.io, Codeable) и **пейвол** (FlexJobs) публичной
-  доски заказов не имеют / закрыты подпиской — их скрейпить нечего; классы есть,
-  но по сути неактивны. LinkedIn/Wellfound требуют авторизации и блокируют
-  скрейпинг (используйте официальные API). **We Work Remotely** работает через
-  публичный RSS и включён.
-- **Telegram-каналы** как источник в этой версии не реализованы: для чтения
-  каналов нужен userbot (Telethon/Pyrogram) с номером телефона — это отдельный
-  модуль, могу добавить по запросу.
+  Workzilla, Профи.ру, Workspace и UZ-SPA. Без прокси часто отдают 0 из-за
+  антибота — это блокировка, а не ошибка; бот не падает.
+- 🔑-сайты (Upwork, Fiverr, PeoplePerHour, SEEK…) по умолчанию **выключены** —
+  включаются флагом `SITE_UPWORK=1` после добавления входа/API.
+- Прокси включается одной переменной `PROXY_URL` (см. раздел «Настройка»).
+- **Telegram-каналы** как источник пока не реализованы: нужен userbot (Telethon)
+  с номером телефона — отдельный модуль, могу добавить по запросу.
 - Если сайт заблокирован по IP или сменил вёрстку — бот **не падает**, а
-  пропускает его и пишет предупреждение в лог. Смотрите `/sites` — там видно,
-  кто сколько отдал в последний раз.
+  пропускает его. Смотрите `/sites` — там видно, кто сколько отдал в последний раз.
 
 ---
 
@@ -257,8 +250,8 @@ class MySiteParser(ConfigurableHTMLParser):
 ```
 
 Для нестандартных сайтов (JSON-API, RSS) наследуйтесь от `BaseParser` и
-реализуйте `fetch()` — примеры: `parsers/hh.py` (API), `parsers/kwork.py`
-(встроенный JSON), `parsers/us.py` (`RedditParser` — JSON, `CraigslistParser` — RSS).
+реализуйте `fetch()` — примеры: `parsers/kwork.py` (встроенный JSON),
+`parsers/us.py` (`RedditParser` — JSON, `CraigslistParser` — RSS).
 В `BaseParser` уже есть готовые `_get_html`, `_get_json`, `_get_rss`,
 `_get_html_dynamic`, `soup`.
 

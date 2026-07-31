@@ -38,10 +38,11 @@ class AvitoParser(BaseParser):
     # Включён по запросу. ВНИМАНИЕ: сильный антибот — без прокси часто 0.
     enabled_default = True
     require_want = True  # раздел «услуги» = предложения, берём только явные запросы
+    SEARCH_URL = SEARCH_URL  # раздел «Услуги»
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
         # Avito без рендера JS не отдаёт объявления — используем playwright
-        html = await self._get_html_dynamic(SEARCH_URL, wait_selector=CARD_SELECTOR)
+        html = await self._get_html_dynamic(self.SEARCH_URL, wait_selector=CARD_SELECTOR)
         soup = self.soup(html)
 
         ads: list[Ad] = []
@@ -74,3 +75,18 @@ class AvitoParser(BaseParser):
                    description=description, price=price)
             )
         return ads
+
+
+class AvitoVacanciesParser(AvitoParser):
+    """
+    Avito, раздел «Вакансии» — по запросу пользователя. Здесь ищем именно
+    ЗАКАЗЫ на проект (напр. «нужен разработчик для сайта, оплата сдельно»);
+    фильтр найма (EMPLOYMENT_STOP_KEYWORDS) отсеет вакансии «в штат».
+    """
+    name = "avitovac"
+    title = "Avito (вакансии)"
+    country = "ru"
+    enabled_default = True
+    require_want = False  # интент решает фильтр найма, а не require_want
+    SEARCH_URL = "https://www.avito.ru/all/vakansii?q=разработка+сайта+веб-разработчик&s=104"
+

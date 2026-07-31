@@ -45,30 +45,14 @@ class WeblancerParser(ConfigurableHTMLParser):
     DESC_SELECTOR = ".text_field, .description, .text"
 
 
-class HabrFreelanceParser(ConfigurableHTMLParser):
-    # ВНИМАНИЕ: Habr Freelance закрыт и переехал в «Фрилансим» (freelansim.ru).
-    # Парсим его. Если сайт недоступен — вернётся пусто (бот не падает).
-    name = "habr"
-    title = "Habr Freelance / Фрилансим"
-    country = "ru"
-    enabled_default = False  # ❌ и Habr Freelance, и Фрилансим закрыты (410 Gone)
-
-    BASE = "https://freelansim.ru"
-    LIST_URL = "https://freelansim.ru/tasks"
-    CARD_SELECTOR = ".task, .tasks__item, article.task, li.task"
-    TITLE_SELECTOR = "a.task__title, .task__title a, h2 a, a[href*='/tasks/']"
-    PRICE_SELECTOR = ".task__finance, .count, .task__price"
-    DESC_SELECTOR = ".task__description, .task__text"
-
-
 class WorkzillaParser(ConfigurableHTMLParser):
     name = "workzilla"
     title = "Workzilla"
     country = "ru"
     enabled_default = True
 
-    BASE = "https://workzilla.com"
-    LIST_URL = "https://workzilla.com/freelancer/tasks"
+    BASE = "https://work-zilla.com"
+    LIST_URL = "https://work-zilla.com/tasks"
     USE_DYNAMIC = True  # рендерится через JS, часто требует вход
     CARD_SELECTOR = ".task-card, .task, [data-task]"
     TITLE_SELECTOR = "a.task-card__title, .task-title a, a[href*='/task/']"

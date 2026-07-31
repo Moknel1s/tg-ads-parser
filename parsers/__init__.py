@@ -45,11 +45,17 @@ from .us import (
     UpworkParser,
 )
 from .uz import (
+    BirBirParser,
+    BisyorParser,
     DoworkUzParser,
     EdcSaleParser,
+    FreelanceAdminParser,
     GiglancerParser,
     InfoShopUzParser,
     OlxUzParser,
+    SalexyParser,
+    TwoWorkParser,
+    UzFreelanceParser,
     UzitHubParser,
     WorklanceParser,
 )
@@ -62,8 +68,9 @@ _ALL: list[type[BaseParser]] = [
     FreelanceRuParser, WeblancerParser, HabrFreelanceParser,
     WorkzillaParser, ProfiRuParser, WorkspaceParser,
     # 🇺🇿 Узбекистан
-    OlxUzParser, DoworkUzParser, UzitHubParser, GiglancerParser,
-    WorklanceParser, EdcSaleParser, InfoShopUzParser,
+    OlxUzParser, BisyorParser, SalexyParser, DoworkUzParser, UzitHubParser,
+    GiglancerParser, TwoWorkParser, BirBirParser, WorklanceParser,
+    UzFreelanceParser, FreelanceAdminParser, EdcSaleParser, InfoShopUzParser,
     # 🇺🇸 США (+ глобальные маркетплейсы)
     RedditParser, CraigslistParser, UpworkParser, FiverrParser,
     FreelancerComParser, GuruParser, ThumbtackParser,
@@ -117,7 +124,15 @@ def site_titles() -> dict[str, str]:
     return {cls.name: cls.title for cls in _ALL}
 
 
+def site_require_want() -> dict[str, bool]:
+    """
+    Словарь {ключ сайта: требовать ли явный признак запроса}.
+    True — для досок-классифайдов (OLX, Avito, bisyor…).
+    """
+    return {cls.name: getattr(cls, "require_want", False) for cls in _ALL}
+
+
 __all__ = [
     "Ad", "BaseParser", "ConfigurableHTMLParser",
-    "get_parsers", "all_sites", "site_titles",
+    "get_parsers", "all_sites", "site_titles", "site_require_want",
 ]

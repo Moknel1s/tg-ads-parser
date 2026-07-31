@@ -25,7 +25,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 import config
 from bot.keyboards import ad_keyboard
 from database import db
-from parsers import Ad, get_parsers, site_titles
+from parsers import Ad, get_parsers, site_require_want, site_titles
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +37,9 @@ LAST_RUN_STATS: dict[str, int] = {}
 
 # Человекочитаемые названия источников (строится из реестра парсеров).
 SOURCE_TITLES: dict[str, str] = site_titles()
+
+# Для каких источников требуется явный признак запроса (доски-классифайды).
+SOURCE_REQUIRE_WANT: dict[str, bool] = site_require_want()
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +69,11 @@ def is_relevant(ad: Ad, keywords: list[str]) -> bool:
     if not any(_normalize(kw) in blob for kw in keywords):
         return False
 
-    # 2) стоп-слова исключают, если рядом нет признака разработки
+    # 2a) жёсткие стоп-слова (SEO/SMM/реклама) — исключаем всегда
+    if any(_normalize(h) in blob for h in config.HARD_STOP_KEYWORDS):
+        return False
+
+    # 2b) обычные стоп-слова исключают, если рядом нет признака разработки
     if any(_normalize(s) in blob for s in config.STOP_KEYWORDS):
         if not any(_normalize(d) in blob for d in config.DEV_INDICATORS):
             return False
@@ -75,6 +82,12 @@ def is_relevant(ad: Ad, keywords: list[str]) -> bool:
     has_want = any(_normalize(w) in blob for w in config.WANT_INDICATORS)
     has_offer = any(_normalize(o) in blob for o in config.OFFER_INDICATORS)
     if has_offer and not has_want:
+        return False
+
+    # 4) на досках-классифайдах (OLX, Avito, bisyor…) нейтральный заголовок
+    #    «Разработка сайтов» — это обычно предложение услуги, поэтому там
+    #    требуем явный признак запроса.
+    if SOURCE_REQUIRE_WANT.get(ad.source, False) and not has_want:
         return False
 
     return True

@@ -162,6 +162,15 @@ python main.py
 Если в тексте есть признак предложения и при этом НЕТ признака запроса —
 объявление считается рекламой услуги и пропускается.
 
+**Доски-классифайды строже.** У сайтов вроде OLX, Avito, Bisyor нейтральный
+заголовок «Разработка сайтов» — это почти всегда предложение услуги. Поэтому у
+таких парсеров стоит флаг `require_want = True`: с них берём только объявления с
+явным признаком запроса (`нужен`, `ищу`, `kerak`, `need`…). У бирж задач (FL.ru,
+Kwork, Freelance.ru) нейтральные заголовки проходят — там это задача клиента.
+
+**Жёсткий стоп** (`HARD_STOP_KEYWORDS` в `config.py`) исключает чисто
+маркетинговые услуги (SEO, SMM, реклама, раскрутка) даже если рядом есть «сайт».
+
 ---
 
 ## 🌍 Какие сайты подключены (по факту)
@@ -174,7 +183,7 @@ python main.py
 | Страна | ✅ Включены по умолчанию | ⚪️ Выключены (нужны ключи/прокси/проверка) |
 |---|---|---|
 | 🇷🇺 | **Все 10 сайтов + HH**: FL.ru, Kwork, Freelance.ru, Workzilla, YouDo, Weblancer, Avito, Профи.ру, Workspace.ru, Habr/Фрилансим, HH.ru | — |
-| 🇺🇿 | OLX.uz | Dowork, UZITHUB, Giglancer, Worklance, EDC.Sale, InfoShop |
+| 🇺🇿 | **Все 13 сайтов включены**: OLX.uz, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir, Worklance, UzFreelance, Freelance.admin, EDC.Sale, InfoShop | — |
 | 🇺🇸 | Reddit (r/forhire…), Craigslist | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack |
 | 🇬🇧 | — | PeoplePerHour, Bark, Gumtree, YunoJuno |
 | 🇦🇺 | — | Airtasker, SEEK, Indeed |

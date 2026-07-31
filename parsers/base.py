@@ -87,6 +87,10 @@ class BaseParser(abc.ABC):
     country: str = "ru"
     enabled_default: bool = True
     enabled: bool = True
+    # True для досок-классифайдов (OLX, Avito, bisyor…), где нейтральный заголовок
+    # «Разработка сайтов» — это обычно ПРЕДЛОЖЕНИЕ услуги. Для таких источников
+    # требуем явный признак запроса («нужен», «ищу», «kerak», «need»…).
+    require_want: bool = False
 
     @abc.abstractmethod
     async def fetch(self, keywords: list[str]) -> list[Ad]:
@@ -210,18 +214,26 @@ class ConfigurableHTMLParser(BaseParser):
 
         soup = self.soup(html)
         base = self.BASE or self.LIST_URL
-        link_sel = self.LINK_SELECTOR or self.TITLE_SELECTOR
 
         ads: list[Ad] = []
         for card in soup.select(self.CARD_SELECTOR):
-            link_el = card.select_one(link_sel)
-            if not link_el:
+            # Устойчиво находим ссылку на объявление:
+            #  1) по LINK_SELECTOR (если задан и у него есть href);
+            #  2) сама карточка — ссылка <a href>;
+            #  3) любая ссылка <a href> внутри карточки.
+            link_el = card.select_one(self.LINK_SELECTOR) if self.LINK_SELECTOR else None
+            if link_el is None or not link_el.get("href"):
+                if card.has_attr("href"):
+                    link_el = card
+                else:
+                    link_el = card.select_one("a[href]")
+            href = link_el.get("href", "") if link_el else ""
+            if not href:
                 continue
 
             title_el = card.select_one(self.TITLE_SELECTOR) if self.TITLE_SELECTOR else link_el
-            title = (title_el or link_el).get_text(strip=True)
-            href = link_el.get("href", "")
-            if not title or not href:
+            title = (title_el or link_el).get_text(" ", strip=True)
+            if not title:
                 continue
 
             url = urljoin(base, href)

@@ -207,11 +207,14 @@ LinkedIn…) мы НЕ добавляем.
 |---|---|---|---|
 | 🇷🇺 | Kwork, FL.ru, Freelance.ru, FreelanceSpace | YouDo, Avito (услуги+вакансии), Weblancer, Workspace | Workzilla, Профи.ру |
 | 🇺🇿 | — | OLX, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir, OpenDeal, 1good, HH.uz (проектная работа) | — |
-| 🇺🇸 | — | Reddit, Craigslist | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack |
+| 🇺🇸 | We Work Remotely¹ | Reddit, Craigslist, Contra, Arc.dev¹, Dice¹ | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack, LinkedIn¹, Wellfound |
 | 🇬🇧 | — | Gumtree UK | PeoplePerHour, Bark, YunoJuno |
 | 🇦🇺 | — | Airtasker | SEEK, Indeed |
 
 Заметки:
+- ¹ — **доска вакансий** (We Work Remotely, Arc.dev, Dice, LinkedIn). Добавлены
+  выключенными; даже если включить, фильтр найма оставит только проектную/
+  контрактную работу, а штатные вакансии отсеет.
 - **Стабильно без прокси**: Kwork, FL.ru, Freelance.ru (JSON/HTML), FreelanceSpace.
 - **Через playwright** (нужен `playwright install chromium`): YouDo, Avito,
   Workzilla, Профи.ру, Workspace и UZ-SPA. Без прокси часто отдают 0 из-за

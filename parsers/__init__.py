@@ -43,6 +43,14 @@ from .us import (
     ThumbtackParser,
     UpworkParser,
 )
+from .us_extra import (
+    ArcParser,
+    ContraParser,
+    DiceParser,
+    LinkedInParser,
+    WellfoundParser,
+    WeWorkRemotelyParser,
+)
 from .uz import (
     BirBirParser,
     BisyorParser,
@@ -68,9 +76,11 @@ _ALL: list[type[BaseParser]] = [
     OlxUzParser, BisyorParser, SalexyParser, DoworkUzParser, UzitHubParser,
     GiglancerParser, TwoWorkParser, BirBirParser, OpenDealParser,
     OneGoodParser, HHUzParser,
-    # 🇺🇸 США
+    # 🇺🇸 США / глобальные
     RedditParser, CraigslistParser, UpworkParser, FiverrParser,
     FreelancerComParser, GuruParser, ThumbtackParser,
+    ContraParser, ArcParser, DiceParser, WeWorkRemotelyParser,
+    LinkedInParser, WellfoundParser,
     # 🇬🇧 Великобритания
     PeoplePerHourParser, BarkParser, GumtreeUkParser, YunoJunoParser,
     # 🇦🇺 Австралия
@@ -93,6 +103,9 @@ SITE_NEEDS: dict[str, str] = {
     "reddit": "proxy", "craigslist": "proxy",
     "upwork": "api", "fiverr": "api", "freelancercom": "api", "guru": "api",
     "thumbtack": "api",
+    "contra": "proxy", "arc": "proxy", "dice": "proxy",
+    "linkedin": "api", "wellfound": "api",
+    # weworkremotely — RSS, работает без прокси (но это доска вакансий)
     # GB
     "peopleperhour": "api", "bark": "api", "gumtreeuk": "proxy", "yunojuno": "api",
     # AU

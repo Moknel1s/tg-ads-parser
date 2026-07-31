@@ -78,17 +78,22 @@ def is_relevant(ad: Ad, keywords: list[str]) -> bool:
         if not any(_normalize(d) in blob for d in config.DEV_INDICATORS):
             return False
 
-    # 3) отсекаем ПРЕДЛОЖЕНИЯ услуг (нужны только запросы «ищу исполнителя»)
+    # 3) распознаём намерение
     has_want = any(_normalize(w) in blob for w in config.WANT_INDICATORS)
-    has_offer = any(_normalize(o) in blob for o in config.OFFER_INDICATORS)
-    if has_offer and not has_want:
-        return False
+    has_offer = any(_normalize(o) in blob for o in config.OFFER_INDICATORS)  # сильные
+    has_offer_weak = has_offer or any(
+        _normalize(o) in blob for o in config.OFFER_WEAK_INDICATORS
+    )
 
-    # 4) на досках-классифайдах (OLX, Avito, bisyor…) нейтральный заголовок
-    #    «Разработка сайтов» — это обычно предложение услуги, поэтому там
-    #    требуем явный признак запроса.
-    if SOURCE_REQUIRE_WANT.get(ad.source, False) and not has_want:
-        return False
+    if SOURCE_REQUIRE_WANT.get(ad.source, False):
+        # Классифайды (OLX, Avito, Bisyor…): нужен ЯВНЫЙ запрос И никаких
+        # сильных признаков предложения — даже если есть крючок «Нужен сайт?».
+        if not has_want or has_offer:
+            return False
+    else:
+        # Биржи задач (FL.ru, Kwork…): отсекаем явные предложения без запроса.
+        if has_offer_weak and not has_want:
+            return False
 
     return True
 

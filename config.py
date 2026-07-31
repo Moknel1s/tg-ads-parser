@@ -100,6 +100,11 @@ MAX_SENDS_PER_RUN: int = _get_int("MAX_SENDS_PER_RUN", 60)
 REQUEST_DELAY_MIN: float = _get_float("REQUEST_DELAY_MIN", 1.0)
 REQUEST_DELAY_MAX: float = _get_float("REQUEST_DELAY_MAX", 3.0)
 
+# Прокси для обхода антибота / гео-блокировок (одинаковый для aiohttp и playwright).
+# Формат: http://host:port  или  http://user:pass@host:port  (также socks5://…).
+# Пусто = без прокси. Рекомендуется резидентный прокси нужной страны (UZ/RU).
+PROXY_URL: str = os.getenv("PROXY_URL", "").strip()
+
 
 # ---------------------------------------------------------------------------
 #  База данных

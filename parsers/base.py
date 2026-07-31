@@ -25,6 +25,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 import aiohttp
 from bs4 import BeautifulSoup
 
+import config
 from config import (
     MAX_ADS_PER_SITE,
     REQUEST_DELAY_MAX,
@@ -33,6 +34,39 @@ from config import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def _aiohttp_proxy() -> tuple[str | None, "aiohttp.BasicAuth | None"]:
+    """
+    Возвращает (proxy_url, proxy_auth) для aiohttp из config.PROXY_URL.
+    Логин/пароль, зашитые в URL, выносятся в BasicAuth (так надёжнее).
+    (None, None) — если прокси не задан.
+    """
+    if not config.PROXY_URL:
+        return None, None
+    parts = urlsplit(config.PROXY_URL)
+    netloc = parts.hostname or ""
+    if parts.port:
+        netloc += f":{parts.port}"
+    clean = f"{parts.scheme}://{netloc}"
+    if parts.username:
+        return clean, aiohttp.BasicAuth(parts.username, parts.password or "")
+    return clean, None
+
+
+def _playwright_proxy() -> dict | None:
+    """Возвращает конфиг proxy для Playwright из config.PROXY_URL (или None)."""
+    if not config.PROXY_URL:
+        return None
+    parts = urlsplit(config.PROXY_URL)
+    netloc = parts.hostname or ""
+    if parts.port:
+        netloc += f":{parts.port}"
+    cfg: dict = {"server": f"{parts.scheme}://{netloc}"}
+    if parts.username:
+        cfg["username"] = parts.username
+        cfg["password"] = parts.password or ""
+    return cfg
 
 
 def normalize_url(url: str) -> str:
@@ -128,8 +162,9 @@ class BaseParser(abc.ABC):
         """GET статической страницы. Возвращает HTML/текст."""
         await self._polite_delay()
         timeout = aiohttp.ClientTimeout(total=25)
+        proxy, proxy_auth = _aiohttp_proxy()
         async with aiohttp.ClientSession(headers=self._headers(), timeout=timeout) as session:
-            async with session.get(url, params=params) as resp:
+            async with session.get(url, params=params, proxy=proxy, proxy_auth=proxy_auth) as resp:
                 resp.raise_for_status()
                 return await resp.text()
 
@@ -142,8 +177,9 @@ class BaseParser(abc.ABC):
         hdrs["Accept"] = "application/json"
         if headers:
             hdrs.update(headers)
+        proxy, proxy_auth = _aiohttp_proxy()
         async with aiohttp.ClientSession(headers=hdrs, timeout=timeout) as session:
-            async with session.get(url, params=params) as resp:
+            async with session.get(url, params=params, proxy=proxy, proxy_auth=proxy_auth) as resp:
                 resp.raise_for_status()
                 return await resp.json()
 
@@ -162,7 +198,7 @@ class BaseParser(abc.ABC):
 
         await self._polite_delay()
         async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=True)
+            browser = await pw.chromium.launch(headless=True, proxy=_playwright_proxy())
             try:
                 context = await browser.new_context(
                     user_agent=random.choice(USER_AGENTS),

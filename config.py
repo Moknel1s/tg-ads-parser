@@ -137,9 +137,26 @@ COUNTRY_TARGETS: dict[str, int] = {
 }
 
 
+def site_target(name: str) -> int:
+    """
+    Отдельный чат для КОНКРЕТНОГО сайта (переменная TARGET_CHAT_SITE_<NAME>).
+    Приоритетнее чата страны. 0 — если не задан.
+    Пример: TARGET_CHAT_SITE_FLRU=6559307546
+    """
+    return _get_int(f"TARGET_CHAT_SITE_{name.upper()}", 0)
+
+
 def target_for_country(code: str, default: int) -> int:
     """Возвращает чат для страны (override из COUNTRY_TARGETS) или default."""
     return COUNTRY_TARGETS.get(code) or default
+
+
+def resolve_target(source: str, country: str, default: int) -> int:
+    """
+    Куда слать объявление: приоритет — свой чат сайта, затем чат страны,
+    затем общий чат (default).
+    """
+    return site_target(source) or COUNTRY_TARGETS.get(country) or default
 
 
 # Прокси НА КАЖДУЮ СТРАНУ (необязательно). Задаётся в .env как PROXY_URL_<КОД>,

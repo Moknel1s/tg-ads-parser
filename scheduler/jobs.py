@@ -215,10 +215,10 @@ async def run_parsing(bot: Bot, target_chat_id: int, force: bool = False) -> int
                      len(to_send), cap)
             to_send = to_send[:cap]
 
-        # 3) отправляем (каждую страну — в свой чат, если задан TARGET_CHAT_<КОД>)
+        # 3) отправляем. Куда: свой чат сайта → чат страны → общий чат.
         new_count = 0
         for ad in to_send:
-            chat = config.target_for_country(ad.country, target_chat_id)
+            chat = config.resolve_target(ad.source, ad.country, target_chat_id)
             sent = await _send_ad(bot, chat, ad)
             if sent:
                 # mark_seen идемпотентен (INSERT OR IGNORE) — для force не мешает

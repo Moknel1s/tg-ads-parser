@@ -23,7 +23,7 @@
 """
 from __future__ import annotations
 
-from .base import ConfigurableHTMLParser
+from .base import Ad, BaseParser, ConfigurableHTMLParser
 
 
 class OlxUzParser(ConfigurableHTMLParser):
@@ -145,3 +145,92 @@ class BirBirParser(ConfigurableHTMLParser):
     CARD_SELECTOR = "a[href*='/e/'], .product-item, .card, article"
     TITLE_SELECTOR = ".title, h3, .name"
     PRICE_SELECTOR = ".price"
+
+
+class OpenDealParser(ConfigurableHTMLParser):
+    name = "opendeal"
+    title = "OpenDeal.uz"
+    country = "uz"
+    enabled_default = True
+    require_want = True  # классифайд/маркетплейс
+
+    BASE = "https://opendeal.uz"
+    LIST_URL = "https://opendeal.uz/"
+    USE_DYNAMIC = True  # Vue-SPA
+    CARD_SELECTOR = ".product, .card, .item, article, [class*='card']"
+    TITLE_SELECTOR = "a, .title, h3"
+    PRICE_SELECTOR = ".price"
+    DESC_SELECTOR = ".description, .text"
+
+
+class OneGoodParser(ConfigurableHTMLParser):
+    name = "1good"
+    title = "1good.uz"
+    country = "uz"
+    enabled_default = True
+    require_want = True  # классифайд/маркетплейс
+
+    BASE = "https://1good.uz"
+    LIST_URL = "https://1good.uz/"
+    USE_DYNAMIC = True  # React-SPA
+    CARD_SELECTOR = ".product, .card, .item, article, [class*='card']"
+    TITLE_SELECTOR = "a, .title, h3"
+    PRICE_SELECTOR = ".price"
+    DESC_SELECTOR = ".description, .text"
+
+
+class HHUzParser(BaseParser):
+    """
+    HH.uz — раздел «Проектная работа» через официальный API api.hh.ru
+    (area=97 — Узбекистан, employment=project). Штатные вакансии сюда не попадают.
+    С датацентр-IP API отвечает 403 — нужен обычный/UZ IP или прокси.
+    """
+
+    name = "hhuz"
+    title = "HH.uz (проектная работа)"
+    country = "uz"
+    enabled_default = True
+
+    API = "https://api.hh.ru/vacancies"
+    HEADERS = {"User-Agent": "loomis-ads-parser/1.0 (freelance monitor)"}
+    QUERY = "сайт OR веб OR лендинг OR CRM OR ERP OR бот OR приложение OR разработка"
+
+    async def fetch(self, keywords: list[str]) -> list[Ad]:
+        params = {
+            "area": 97,               # Узбекистан
+            "text": self.QUERY,
+            "search_field": "name",
+            "per_page": 50,
+            "order_by": "publication_time",
+            "period": 3,
+            "employment": "project",  # проектная работа (не штат)
+        }
+        data = await self._get_json(self.API, params=params, headers=self.HEADERS)
+        ads: list[Ad] = []
+        for item in data.get("items", []):
+            title = item.get("name") or ""
+            url = item.get("alternate_url") or ""
+            if not title or not url:
+                continue
+            snip = item.get("snippet") or {}
+            desc = " ".join(p for p in [snip.get("requirement"), snip.get("responsibility")] if p)
+            desc = desc.replace("<highlighttext>", "").replace("</highlighttext>", "")
+            ads.append(
+                Ad(title=title, url=url, source=self.name, country=self.country,
+                   description=desc, price=_hh_salary(item.get("salary")))
+            )
+        return ads
+
+
+def _hh_salary(salary: dict | None) -> str:
+    """Форматирует зарплату HH в строку."""
+    if not salary:
+        return ""
+    frm, to, cur = salary.get("from"), salary.get("to"), salary.get("currency", "")
+    if frm and to:
+        return f"{frm}–{to} {cur}"
+    if frm:
+        return f"от {frm} {cur}"
+    if to:
+        return f"до {to} {cur}"
+    return ""

@@ -206,7 +206,7 @@ LinkedIn…) мы НЕ добавляем.
 | Страна | ✅ Работают как есть | 🛰 Нужен прокси | 🔑 Нужен API/вход |
 |---|---|---|---|
 | 🇷🇺 | Kwork, FL.ru, Freelance.ru, FreelanceSpace | YouDo, Avito (услуги+вакансии), Weblancer, Workspace | Workzilla, Профи.ру |
-| 🇺🇿 | — | OLX, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir | — |
+| 🇺🇿 | — | OLX, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir, OpenDeal, 1good, HH.uz (проектная работа) | — |
 | 🇺🇸 | — | Reddit, Craigslist | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack |
 | 🇬🇧 | — | Gumtree UK | PeoplePerHour, Bark, YunoJuno |
 | 🇦🇺 | — | Airtasker | SEEK, Indeed |

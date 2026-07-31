@@ -92,6 +92,13 @@ SITE_UPWORK=1    # включить Upwork (нужен вход/API)
 SITE_KWORK=0     # выключить Kwork
 ```
 
+**Отдельный чат на страну (необязательно).** Можно слать объявления конкретной
+страны в отдельный чат — переменной `TARGET_CHAT_<КОД>` (RU/UZ/UA/US/GB/AU):
+```env
+TARGET_CHAT_UA=6559307546   # объявления из Украины — в этот чат
+```
+Страны без своего чата шлются в общий `TARGET_CHAT_ID`.
+
 **Прокси (обход антибота / гео-блокировок).** Многие сайты (Avito, OLX,
 Профи.ру, SPA-площадки) режут запросы. Чтобы обойти — задайте одну переменную:
 ```env
@@ -207,12 +214,13 @@ LinkedIn…) мы НЕ добавляем.
 |---|---|---|---|
 | 🇷🇺 | Kwork, FL.ru, Freelance.ru, FreelanceSpace | YouDo, Avito (услуги+вакансии), Weblancer, Workspace | Workzilla, Профи.ру |
 | 🇺🇿 | — | OLX, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir, OpenDeal, 1good, HH.uz (проектная работа) | — |
+| 🇺🇦 | — | FreelanceHunt, Freelance.ua, Kabanchik, Prom.ua | Work.ua¹, DOU¹ |
 | 🇺🇸 | We Work Remotely¹ | Reddit, Craigslist, Contra, Arc.dev¹, Dice¹ | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack, LinkedIn¹, Wellfound |
 | 🇬🇧 | Reed.co.uk¹ (contract) | Gumtree UK | PeoplePerHour, Bark, YunoJuno |
 | 🇦🇺 | OzLance | Airtasker, Jora¹ | SEEK, Indeed |
 
 Заметки:
-- ¹ — **доска вакансий** (We Work Remotely, Arc.dev, Dice, LinkedIn, Reed, Jora). Добавлены
+- ¹ — **доска вакансий** (We Work Remotely, Arc.dev, Dice, LinkedIn, Reed, Jora, Work.ua, DOU). Добавлены
   выключенными; даже если включить, фильтр найма оставит только проектную/
   контрактную работу, а штатные вакансии отсеет.
 - **Стабильно без прокси**: Kwork, FL.ru, Freelance.ru (JSON/HTML), FreelanceSpace.

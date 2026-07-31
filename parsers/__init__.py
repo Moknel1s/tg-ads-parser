@@ -46,6 +46,14 @@ from .ru_extra import (
     WorkspaceParser,
     WorkzillaParser,
 )
+from .ua import (
+    DouParser,
+    FreelanceHuntParser,
+    FreelanceUaParser,
+    KabanchikParser,
+    PromUaParser,
+    WorkUaParser,
+)
 from .us import (
     CraigslistParser,
     FiverrParser,
@@ -88,6 +96,9 @@ _ALL: list[type[BaseParser]] = [
     OlxUzParser, BisyorParser, SalexyParser, DoworkUzParser, UzitHubParser,
     GiglancerParser, TwoWorkParser, BirBirParser, OpenDealParser,
     OneGoodParser, HHUzParser,
+    # 🇺🇦 Украина
+    FreelanceHuntParser, FreelanceUaParser, KabanchikParser, PromUaParser,
+    WorkUaParser, DouParser,
     # 🇺🇸 США / глобальные
     RedditParser, CraigslistParser, UpworkParser, FiverrParser,
     FreelancerComParser, GuruParser, ThumbtackParser,
@@ -111,6 +122,9 @@ SITE_NEEDS: dict[str, str] = {
     "olxuz": "proxy", "bisyor": "proxy", "salexy": "proxy", "dowork": "proxy",
     "uzithub": "proxy", "giglancer": "proxy", "2work": "proxy", "birbir": "proxy",
     "opendeal": "proxy", "1good": "proxy", "hhuz": "proxy",
+    # UA
+    "freelancehunt": "proxy", "freelanceua": "proxy",
+    "kabanchik": "proxy", "prom": "proxy",
     # US
     "reddit": "proxy", "craigslist": "proxy",
     "upwork": "api", "fiverr": "api", "freelancercom": "api", "guru": "api",

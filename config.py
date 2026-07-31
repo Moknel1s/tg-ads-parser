@@ -119,6 +119,7 @@ DB_PATH: str = os.getenv("DB_PATH", str(BASE_DIR / "ads.db"))
 COUNTRIES: dict[str, dict[str, str]] = {
     "ru": {"flag": "🇷🇺", "name": "Россия"},
     "uz": {"flag": "🇺🇿", "name": "Узбекистан"},
+    "ua": {"flag": "🇺🇦", "name": "Украина"},
     "us": {"flag": "🇺🇸", "name": "США"},
     "gb": {"flag": "🇬🇧", "name": "Великобритания"},
     "au": {"flag": "🇦🇺", "name": "Австралия"},
@@ -127,6 +128,18 @@ COUNTRIES: dict[str, dict[str, str]] = {
 COUNTRIES_ENABLED: dict[str, bool] = {
     code: env_bool(f"COUNTRY_{code.upper()}", True) for code in COUNTRIES
 }
+
+# Куда слать объявления КАЖДОЙ страны отдельно (необязательно).
+# Задаётся в .env как TARGET_CHAT_<КОД>, напр. TARGET_CHAT_UA=6559307546.
+# Если для страны не задано (0) — используется общий TARGET_CHAT_ID.
+COUNTRY_TARGETS: dict[str, int] = {
+    code: _get_int(f"TARGET_CHAT_{code.upper()}", 0) for code in COUNTRIES
+}
+
+
+def target_for_country(code: str, default: int) -> int:
+    """Возвращает чат для страны (override из COUNTRY_TARGETS) или default."""
+    return COUNTRY_TARGETS.get(code) or default
 
 
 def country_flag(code: str) -> str:

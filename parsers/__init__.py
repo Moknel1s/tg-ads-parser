@@ -29,6 +29,7 @@ from .hh import HHParser
 from .kwork import KworkParser
 from .ru_extra import (
     FreelanceRuParser,
+    FreelanceSpaceParser,
     HabrFreelanceParser,
     ProfiRuParser,
     WeblancerParser,
@@ -76,7 +77,7 @@ from .youdo import YouDoParser
 _ALL: list[type[BaseParser]] = [
     # 🇷🇺 Россия
     HHParser, KworkParser, FLruParser, YouDoParser, AvitoParser,
-    FreelanceRuParser, WeblancerParser, HabrFreelanceParser,
+    FreelanceRuParser, FreelanceSpaceParser, WeblancerParser, HabrFreelanceParser,
     WorkzillaParser, ProfiRuParser, WorkspaceParser,
     # 🇺🇿 Узбекистан
     OlxUzParser, BisyorParser, SalexyParser, DoworkUzParser, UzitHubParser,

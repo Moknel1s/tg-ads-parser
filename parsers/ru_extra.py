@@ -10,7 +10,9 @@ hh.py, kwork.py, flru.py, youdo.py, avito.py).
 """
 from __future__ import annotations
 
-from .base import ConfigurableHTMLParser
+from urllib.parse import urljoin
+
+from .base import Ad, BaseParser, ConfigurableHTMLParser
 
 
 class FreelanceRuParser(ConfigurableHTMLParser):
@@ -49,7 +51,7 @@ class HabrFreelanceParser(ConfigurableHTMLParser):
     name = "habr"
     title = "Habr Freelance / Фрилансим"
     country = "ru"
-    enabled_default = True
+    enabled_default = False  # ❌ и Habr Freelance, и Фрилансим закрыты (410 Gone)
 
     BASE = "https://freelansim.ru"
     LIST_URL = "https://freelansim.ru/tasks"
@@ -88,6 +90,44 @@ class ProfiRuParser(ConfigurableHTMLParser):
     TITLE_SELECTOR = "a, .title, h3"
     PRICE_SELECTOR = ".price, .cost"
     DESC_SELECTOR = ".description, .text"
+
+
+class FreelanceSpaceParser(BaseParser):
+    """
+    FreelanceSpace.ru — лента заказов /jobs/. Вёрстка на Tailwind (без
+    семантических классов), поэтому ищем карточки по ссылкам вида /jobs/<slug>.
+    """
+
+    name = "freelancespace"
+    title = "FreelanceSpace.ru"
+    country = "ru"
+    enabled_default = True
+
+    BASE = "https://freelancespace.ru"
+    LIST_URL = "https://freelancespace.ru/jobs/"
+    # Служебные пути внутри /jobs/, которые не являются заказами
+    SKIP_SLUGS = {"create", "resumes", "apply", "", "moi-otkliki"}
+
+    async def fetch(self, keywords: list[str]) -> list[Ad]:
+        html = await self._get_html(self.LIST_URL)
+        soup = self.soup(html)
+
+        ads: list[Ad] = []
+        seen: set[str] = set()
+        for a in soup.select('a[href*="/jobs/"]'):
+            href = a.get("href", "")
+            slug = href.split("/jobs/", 1)[-1].split("?")[0].strip("/").split("/")[0]
+            if slug in self.SKIP_SLUGS:
+                continue
+            title = a.get_text(" ", strip=True)
+            if not title or len(title) < 5:
+                continue
+            url = urljoin(self.BASE, href)
+            if url in seen:
+                continue
+            seen.add(url)
+            ads.append(Ad(title=title, url=url, source=self.name, country=self.country))
+        return ads
 
 
 class WorkspaceParser(ConfigurableHTMLParser):

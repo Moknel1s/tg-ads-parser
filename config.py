@@ -94,6 +94,9 @@ ADMIN_IDS: list[int] = _get_int_list(
 PARSE_INTERVAL_MIN: int = _get_int("PARSE_INTERVAL_MIN", 7)
 PARSE_INTERVAL_MAX: int = _get_int("PARSE_INTERVAL_MAX", 10)
 MAX_ADS_PER_SITE: int = _get_int("MAX_ADS_PER_SITE", 30)
+# Максимум отправок за один проход (защита от флуда). Остаток уйдёт в следующих
+# циклах (непосланные объявления не помечаются «увиденными»).
+MAX_SENDS_PER_RUN: int = _get_int("MAX_SENDS_PER_RUN", 60)
 REQUEST_DELAY_MIN: float = _get_float("REQUEST_DELAY_MIN", 1.0)
 REQUEST_DELAY_MAX: float = _get_float("REQUEST_DELAY_MAX", 3.0)
 
@@ -140,7 +143,7 @@ def country_name(code: str) -> str:
 #  CRM/ERP/SaaS, ИИ-решения, Telegram-боты для бизнеса, интеграции,
 #  автоматизация, digital-продукты под ключ.
 # ---------------------------------------------------------------------------
-KEYWORDS_VERSION = "loomis-3"
+KEYWORDS_VERSION = "loomis-4"
 
 DEFAULT_KEYWORDS: list[str] = [
     # ---- Русский ----
@@ -172,7 +175,10 @@ DEFAULT_KEYWORDS: list[str] = [
     "telegram bot", "chatbot", "ai solution", "ai-powered",
     "artificial intelligence", "machine learning",
     "business automation", "api integration", "system integration",
-    "ecommerce", "e-commerce", "online store",
+    "ecommerce", "e-commerce", "online store", "shopify", "wordpress",
+    # роли разработки (для job-бордов: WeWorkRemotely, Reddit, LinkedIn…)
+    "developer", "web developer", "frontend", "front-end",
+    "backend", "back-end", "full stack", "full-stack", "software engineer",
     # ---- Oʻzbekcha (узбекский) ----
     "sayt kerak", "web sayt", "web sayt yaratish", "sayt yaratish",
     "dasturchi kerak", "dastur kerak", "bot kerak",

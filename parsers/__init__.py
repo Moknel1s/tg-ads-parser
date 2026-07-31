@@ -44,6 +44,17 @@ from .us import (
     ThumbtackParser,
     UpworkParser,
 )
+from .us_remote import (
+    ArcParser,
+    CodeableParser,
+    ContraParser,
+    FlexJobsParser,
+    GunIoParser,
+    LinkedInParser,
+    ToptalParser,
+    WellfoundParser,
+    WeWorkRemotelyParser,
+)
 from .uz import (
     BirBirParser,
     BisyorParser,
@@ -71,9 +82,11 @@ _ALL: list[type[BaseParser]] = [
     OlxUzParser, BisyorParser, SalexyParser, DoworkUzParser, UzitHubParser,
     GiglancerParser, TwoWorkParser, BirBirParser, WorklanceParser,
     UzFreelanceParser, FreelanceAdminParser, EdcSaleParser, InfoShopUzParser,
-    # 🇺🇸 США (+ глобальные маркетплейсы)
-    RedditParser, CraigslistParser, UpworkParser, FiverrParser,
-    FreelancerComParser, GuruParser, ThumbtackParser,
+    # 🇺🇸 США / глобальные маркетплейсы и удалённые job-борды
+    RedditParser, CraigslistParser, WeWorkRemotelyParser,
+    UpworkParser, FiverrParser, FreelancerComParser, GuruParser, ThumbtackParser,
+    ArcParser, WellfoundParser, ContraParser, LinkedInParser,
+    GunIoParser, CodeableParser, FlexJobsParser, ToptalParser,
     # 🇬🇧 Великобритания
     PeoplePerHourParser, BarkParser, GumtreeUkParser, YunoJunoParser,
     # 🇦🇺 Австралия

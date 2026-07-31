@@ -204,10 +204,12 @@ async def run_parsing(bot: Bot, target_chat_id: int, force: bool = False) -> int
                     continue
                 to_send.append(ad)
 
-        # 2) в режиме «показать всё» ограничиваем объём
-        if force and len(to_send) > FORCE_SEND_LIMIT:
-            log.info("force: найдено %d, показываю первые %d", len(to_send), FORCE_SEND_LIMIT)
-            to_send = to_send[:FORCE_SEND_LIMIT]
+        # 2) ограничиваем объём за один проход (защита от флуда)
+        cap = FORCE_SEND_LIMIT if force else config.MAX_SENDS_PER_RUN
+        if len(to_send) > cap:
+            log.info("Найдено %d, отправляю %d (остальное — в следующих циклах)",
+                     len(to_send), cap)
+            to_send = to_send[:cap]
 
         # 3) отправляем
         new_count = 0

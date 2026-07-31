@@ -187,7 +187,7 @@ python main.py
 |---|---|---|
 | 🇷🇺 | **Все 10 сайтов + HH**: FL.ru, Kwork, Freelance.ru, Workzilla, YouDo, Weblancer, Avito, Профи.ру, Workspace.ru, Habr/Фрилансим, HH.ru | — |
 | 🇺🇿 | **Все 13 сайтов включены**: OLX.uz, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir, Worklance, UzFreelance, Freelance.admin, EDC.Sale, InfoShop | — |
-| 🇺🇸 | Reddit (r/forhire…), Craigslist | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack |
+| 🇺🇸 | Reddit (r/forhire…), Craigslist, **We Work Remotely** | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack, Arc.dev, Wellfound, Contra, LinkedIn, Gun.io, Codeable, FlexJobs, Toptal |
 | 🇬🇧 | — | PeoplePerHour, Bark, Gumtree, YunoJuno |
 | 🇦🇺 | — | Airtasker, SEEK, Indeed |
 
@@ -203,6 +203,11 @@ python main.py
 Прочее:
 - **Глобальные маркетплейсы** (Upwork, Fiverr, Freelancer.com) зарегистрированы
   один раз (в `us.py`) и покрывают в т.ч. GB/AU — чтобы не плодить дубли.
+- **Vetted-сети** (Toptal, Gun.io, Codeable) и **пейвол** (FlexJobs) публичной
+  доски заказов не имеют / закрыты подпиской — их скрейпить нечего; классы есть,
+  но по сути неактивны. LinkedIn/Wellfound требуют авторизации и блокируют
+  скрейпинг (используйте официальные API). **We Work Remotely** работает через
+  публичный RSS и включён.
 - **Telegram-каналы** как источник в этой версии не реализованы: для чтения
   каналов нужен userbot (Telethon/Pyrogram) с номером телефона — это отдельный
   модуль, могу добавить по запросу.

@@ -49,11 +49,14 @@ def _normalize(text: str) -> str:
 
 def is_relevant(ad: Ad, keywords: list[str]) -> bool:
     """
-    True, если объявление относится к услугам Loomis:
+    True, если объявление — это ЗАПРОС на услугу Loomis (ищут исполнителя):
       1) содержит хотя бы одно сервисное ключевое слово;
       2) НЕ содержит стоп-слов (дизайн логотипов, SMM, SEO без разработки,
-         курьеры и т.п.) — но если есть явный признак разработки, стоп-слово
-         игнорируется.
+         курьеры…) — но если есть явный признак разработки, стоп-слово
+         игнорируется;
+      3) это НЕ реклама услуги: если есть признак «предложения» (создам, делаю,
+         веб-студия, портфолио, недорого…) и при этом НЕТ признака «запроса»
+         (нужен, ищу, требуется, need, looking for, kerak…) — отсекаем.
     """
     blob = _normalize(ad.text_blob())
     if not blob:
@@ -67,6 +70,12 @@ def is_relevant(ad: Ad, keywords: list[str]) -> bool:
     if any(_normalize(s) in blob for s in config.STOP_KEYWORDS):
         if not any(_normalize(d) in blob for d in config.DEV_INDICATORS):
             return False
+
+    # 3) отсекаем ПРЕДЛОЖЕНИЯ услуг (нужны только запросы «ищу исполнителя»)
+    has_want = any(_normalize(w) in blob for w in config.WANT_INDICATORS)
+    has_offer = any(_normalize(o) in blob for o in config.OFFER_INDICATORS)
+    if has_offer and not has_want:
+        return False
 
     return True
 

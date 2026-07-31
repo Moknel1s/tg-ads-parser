@@ -174,6 +174,13 @@ python main.py
 **Жёсткий стоп** (`HARD_STOP_KEYWORDS` в `config.py`) исключает чисто
 маркетинговые услуги (SEO, SMM, реклама, раскрутка) даже если рядом есть «сайт».
 
+**Фильтр вакансий (найм в штат).** Нам нужны ЗАКАЗЧИКИ, которым надо заказать
+разработку, а НЕ компании, которые нанимают сотрудника. Поэтому объявления с
+признаками найма (`вакансия`, `в штат`, `зарплата`, `оформление по ТК`,
+`join our team`, `full-time`, `salary`, `ish haqi`…) отсекаются — список
+`EMPLOYMENT_STOP_KEYWORDS` в `config.py`. По этой же причине доски вакансий
+(HH.ru, We Work Remotely, LinkedIn) выключены по умолчанию.
+
 ---
 
 ## 🌍 Какие сайты подключены (по факту)
@@ -185,9 +192,9 @@ python main.py
 
 | Страна | ✅ Включены по умолчанию | ⚪️ Выключены (нужны ключи/прокси/проверка) |
 |---|---|---|
-| 🇷🇺 | **Все 10 сайтов + HH**: FL.ru, Kwork, Freelance.ru, Workzilla, YouDo, Weblancer, Avito, Профи.ру, Workspace.ru, Habr/Фрилансим, HH.ru | — |
-| 🇺🇿 | **Все 13 сайтов включены**: OLX.uz, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir, Worklance, UzFreelance, Freelance.admin, EDC.Sale, InfoShop | — |
-| 🇺🇸 | Reddit (r/forhire…), Craigslist, **We Work Remotely** | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack, Arc.dev, Wellfound, Contra, LinkedIn, Gun.io, Codeable, FlexJobs, Toptal |
+| 🇷🇺 | FL.ru, Kwork, Freelance.ru, Workzilla, YouDo, Weblancer, Avito, Профи.ру, Workspace.ru, Habr/Фрилансим | HH.ru (доска вакансий — не заказы) |
+| 🇺🇿 | OLX.uz, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir | Worklance, UzFreelance, Freelance.admin, EDC.Sale, InfoShop (мёртвы / капча / недоступны) |
+| 🇺🇸 | Reddit (r/forhire…), Craigslist | We Work Remotely, LinkedIn (доски вакансий); Upwork, Fiverr, Freelancer.com, Guru, Thumbtack, Arc.dev, Wellfound, Contra, Gun.io, Codeable, FlexJobs, Toptal |
 | 🇬🇧 | — | PeoplePerHour, Bark, Gumtree, YunoJuno |
 | 🇦🇺 | — | Airtasker, SEEK, Indeed |
 

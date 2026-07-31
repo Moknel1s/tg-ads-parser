@@ -152,7 +152,7 @@ class WorklanceParser(ConfigurableHTMLParser):
     name = "worklance"
     title = "Worklance.uz"
     country = "uz"
-    enabled_default = True
+    enabled_default = False  # ❌ домен не резолвится (мёртв)
 
     BASE = "https://worklance.uz"
     LIST_URL = "https://worklance.uz/projects"
@@ -167,7 +167,7 @@ class UzFreelanceParser(ConfigurableHTMLParser):
     name = "uzfreelance"
     title = "UzFreelance.com"
     country = "uz"
-    enabled_default = True
+    enabled_default = False  # ❌ домен-парковка
 
     BASE = "https://uzfreelance.com"
     LIST_URL = "https://uzfreelance.com/projects"
@@ -182,7 +182,7 @@ class FreelanceAdminParser(ConfigurableHTMLParser):
     name = "freelanceadmin"
     title = "Freelance.admin.uz"
     country = "uz"
-    enabled_default = True
+    enabled_default = False  # ❌ недоступен (таймаут)
 
     BASE = "https://freelance.admin.uz"
     LIST_URL = "https://freelance.admin.uz/"
@@ -197,7 +197,7 @@ class EdcSaleParser(ConfigurableHTMLParser):
     name = "edcsale"
     title = "EDC.Sale"
     country = "uz"
-    enabled_default = True
+    enabled_default = False  # ❌ капча на входе
     require_want = True  # классифайд
 
     BASE = "https://edc.sale"
@@ -213,7 +213,7 @@ class InfoShopUzParser(ConfigurableHTMLParser):
     name = "infoshop"
     title = "InfoShop.uz"
     country = "uz"
-    enabled_default = True
+    enabled_default = False  # ❌ недоступен (таймаут)
     require_want = True  # классифайд
 
     BASE = "https://infoshop.uz"

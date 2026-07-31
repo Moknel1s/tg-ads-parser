@@ -143,7 +143,7 @@ def country_name(code: str) -> str:
 #  CRM/ERP/SaaS, ИИ-решения, Telegram-боты для бизнеса, интеграции,
 #  автоматизация, digital-продукты под ключ.
 # ---------------------------------------------------------------------------
-KEYWORDS_VERSION = "loomis-4"
+KEYWORDS_VERSION = "loomis-5"
 
 DEFAULT_KEYWORDS: list[str] = [
     # ---- Русский ----
@@ -176,9 +176,6 @@ DEFAULT_KEYWORDS: list[str] = [
     "artificial intelligence", "machine learning",
     "business automation", "api integration", "system integration",
     "ecommerce", "e-commerce", "online store", "shopify", "wordpress",
-    # роли разработки (для job-бордов: WeWorkRemotely, Reddit, LinkedIn…)
-    "developer", "web developer", "frontend", "front-end",
-    "backend", "back-end", "full stack", "full-stack", "software engineer",
     # ---- Oʻzbekcha (узбекский) ----
     "sayt kerak", "web sayt", "web sayt yaratish", "sayt yaratish",
     "dasturchi kerak", "dastur kerak", "bot kerak",
@@ -202,6 +199,26 @@ STOP_KEYWORDS: list[str] = [
     "баннер", "полиграфи", "визитк",
     "logo design", "copywriting", "content writing", "social media",
     "data entry", "virtual assistant", "translation",
+]
+
+# НАЙМ В ШТАТ (вакансии) — исключаем ВСЕГДА. Нам нужны заказчики, которым надо
+# ЗАКАЗАТЬ разработку, а не компании, которые нанимают сотрудника в штат.
+EMPLOYMENT_STOP_KEYWORDS: list[str] = [
+    # ---- Русский ----
+    "вакансия", "в штат", "в команду", "нашу команду", "штатн",
+    "полная занятость", "частичная занятость", "график работы", "сменный график",
+    "заработная плата", "зарплата", "з/п", "оклад", "оформление по тк",
+    "трудоустройств", "соцпакет", "испытательный срок", "требуется в компанию",
+    "ищем в команду", "резюме", "удаленная работа", "удалённая работа",
+    "вахта", "подработка",
+    # ---- English (доски вакансий) ----
+    "we are hiring", "we're hiring", "now hiring", "join our team",
+    "join the team", "full-time", "full time", "part-time", "part time",
+    "salary", "benefits package", "paid time off", "401k", "equity",
+    "stock options", "in-house", "job opening", "apply now",
+    "remote position", "our team is looking", "we offer competitive",
+    # ---- Oʻzbekcha ----
+    "ish haqi", "oylik", "vakansiya", "jamoaga", "ish vaqti",
 ]
 
 # ЖЁСТКИЕ стоп-слова: исключают ВСЕГДА (даже если рядом «сайт»/разработка).

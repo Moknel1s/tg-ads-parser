@@ -26,7 +26,8 @@ class WeWorkRemotelyParser(BaseParser):
     name = "weworkremotely"
     title = "We Work Remotely"
     country = "us"
-    enabled_default = True
+    # Выключен: это доска ВАКАНСИЙ (наём удалённых сотрудников), а не заказов.
+    enabled_default = False
 
     FEEDS = [
         "https://weworkremotely.com/categories/remote-programming-jobs.rss",

@@ -24,7 +24,8 @@ class HHParser(BaseParser):
     name = "hh"
     title = "HH.ru (вакансии)"
     country = "ru"
-    enabled_default = True
+    # Выключен: HH — доска ВАКАНСИЙ (наём в штат), а не заказов на разработку.
+    enabled_default = False
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
         params = {

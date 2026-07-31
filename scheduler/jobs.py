@@ -69,7 +69,11 @@ def is_relevant(ad: Ad, keywords: list[str]) -> bool:
     if not any(_normalize(kw) in blob for kw in keywords):
         return False
 
-    # 2a) жёсткие стоп-слова (SEO/SMM/реклама) — исключаем всегда
+    # 2a) НАЙМ В ШТАТ (вакансии) — исключаем всегда. Нужны заказы, а не вакансии.
+    if any(_normalize(e) in blob for e in config.EMPLOYMENT_STOP_KEYWORDS):
+        return False
+
+    # 2b) жёсткие стоп-слова (SEO/SMM/реклама) — исключаем всегда
     if any(_normalize(h) in blob for h in config.HARD_STOP_KEYWORDS):
         return False
 

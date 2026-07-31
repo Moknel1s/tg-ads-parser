@@ -10,7 +10,57 @@ Airtasker, SEEK, Indeed AU имеют антибот-защиту / требую
 """
 from __future__ import annotations
 
-from .base import ConfigurableHTMLParser
+from urllib.parse import urljoin
+
+from .base import Ad, BaseParser, ConfigurableHTMLParser
+
+
+class OzlanceParser(BaseParser):
+    """
+    OzLance.com.au — австралийская фриланс-биржа. Проекты клиентов лежат по
+    ссылкам /project/<slug>; берём их с ленты /jobs (обычный HTML, без прокси).
+    """
+
+    name = "ozlance"
+    title = "OzLance.com.au"
+    country = "au"
+    enabled_default = True
+
+    BASE = "https://www.ozlance.com.au"
+    LIST_URL = "https://www.ozlance.com.au/jobs"
+
+    async def fetch(self, keywords: list[str]) -> list[Ad]:
+        html = await self._get_html(self.LIST_URL)
+        soup = self.soup(html)
+        ads: list[Ad] = []
+        seen: set[str] = set()
+        for a in soup.select("a[href*='/project/']"):
+            title = a.get_text(" ", strip=True)
+            href = a.get("href", "")
+            if not title or len(title) < 5 or not href:
+                continue
+            url = urljoin(self.BASE, href)
+            if url in seen:
+                continue
+            seen.add(url)
+            ads.append(Ad(title=title, url=url, source=self.name, country=self.country))
+        return ads
+
+
+class JoraParser(ConfigurableHTMLParser):
+    # Доска ВАКАНСИЙ (агрегатор). 403 без прокси; фильтр найма оставит контракт.
+    name = "jora"
+    title = "Jora.com.au"
+    country = "au"
+    enabled_default = False
+
+    BASE = "https://au.jora.com"
+    LIST_URL = "https://au.jora.com/j?q=web+developer+contract&l=Australia"
+    USE_DYNAMIC = True
+    CARD_SELECTOR = ".job-card, .result, article, [data-testid='job-card']"
+    TITLE_SELECTOR = "a.job-link, h2 a, a[href*='/job/']"
+    PRICE_SELECTOR = ".salary, .badge"
+    DESC_SELECTOR = ".job-abstract, .description"
 
 
 class AirtaskerParser(ConfigurableHTMLParser):

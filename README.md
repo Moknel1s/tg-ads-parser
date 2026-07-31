@@ -209,10 +209,10 @@ LinkedIn…) мы НЕ добавляем.
 | 🇺🇿 | — | OLX, Bisyor, Salexy, Dowork, UZITHUB, Giglancer, 2work, BirBir, OpenDeal, 1good, HH.uz (проектная работа) | — |
 | 🇺🇸 | We Work Remotely¹ | Reddit, Craigslist, Contra, Arc.dev¹, Dice¹ | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack, LinkedIn¹, Wellfound |
 | 🇬🇧 | Reed.co.uk¹ (contract) | Gumtree UK | PeoplePerHour, Bark, YunoJuno |
-| 🇦🇺 | — | Airtasker | SEEK, Indeed |
+| 🇦🇺 | OzLance | Airtasker, Jora¹ | SEEK, Indeed |
 
 Заметки:
-- ¹ — **доска вакансий** (We Work Remotely, Arc.dev, Dice, LinkedIn, Reed). Добавлены
+- ¹ — **доска вакансий** (We Work Remotely, Arc.dev, Dice, LinkedIn, Reed, Jora). Добавлены
   выключенными; даже если включить, фильтр найма оставит только проектную/
   контрактную работу, а штатные вакансии отсеет.
 - **Стабильно без прокси**: Kwork, FL.ru, Freelance.ru (JSON/HTML), FreelanceSpace.

@@ -20,7 +20,13 @@
 """
 import config
 
-from .au import AirtaskerParser, IndeedAuParser, SeekParser
+from .au import (
+    AirtaskerParser,
+    IndeedAuParser,
+    JoraParser,
+    OzlanceParser,
+    SeekParser,
+)
 from .avito import AvitoParser, AvitoVacanciesParser
 from .base import Ad, BaseParser, ConfigurableHTMLParser
 from .flru import FLruParser
@@ -90,7 +96,7 @@ _ALL: list[type[BaseParser]] = [
     # 🇬🇧 Великобритания
     PeoplePerHourParser, BarkParser, GumtreeUkParser, YunoJunoParser, ReedParser,
     # 🇦🇺 Австралия
-    AirtaskerParser, SeekParser, IndeedAuParser,
+    OzlanceParser, AirtaskerParser, SeekParser, IndeedAuParser, JoraParser,
 ]
 
 # Что нужно сайту для реальной работы (для пометки в /sites):
@@ -115,7 +121,8 @@ SITE_NEEDS: dict[str, str] = {
     # GB
     "peopleperhour": "api", "bark": "api", "gumtreeuk": "proxy", "yunojuno": "api",
     # AU
-    "airtasker": "proxy", "seek": "api", "indeedau": "api",
+    "airtasker": "proxy", "seek": "api", "indeedau": "api", "jora": "proxy",
+    # ozlance — обычный HTML, работает без прокси
 }
 
 

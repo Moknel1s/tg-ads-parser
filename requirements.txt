@@ -5,6 +5,9 @@ aiogram>=3.7,<4.0
 aiohttp>=3.9
 beautifulsoup4>=4.12
 
+# Поддержка socks5-прокси для aiohttp (нужно только если PROXY_URL=socks5://…)
+aiohttp-socks>=0.9
+
 # Парсинг динамических сайтов (Avito и т.п.)
 playwright>=1.44
 

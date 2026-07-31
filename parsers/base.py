@@ -54,6 +54,28 @@ def _aiohttp_proxy() -> tuple[str | None, "aiohttp.BasicAuth | None"]:
     return clean, None
 
 
+def _session_kwargs() -> tuple[dict, dict]:
+    """
+    Готовит аргументы для aiohttp с учётом прокси.
+    Возвращает (session_kwargs, request_kwargs):
+      * http/https-прокси → передаётся per-request (proxy/proxy_auth);
+      * socks5-прокси      → через connector (нужен пакет aiohttp-socks);
+      * без прокси          → пустые словари.
+    """
+    if not config.PROXY_URL:
+        return {}, {}
+    scheme = urlsplit(config.PROXY_URL).scheme.lower()
+    if scheme.startswith("socks"):
+        try:
+            from aiohttp_socks import ProxyConnector
+            return {"connector": ProxyConnector.from_url(config.PROXY_URL)}, {}
+        except ImportError:
+            log.warning("socks-прокси требует пакет aiohttp-socks — запрос идёт напрямую")
+            return {}, {}
+    proxy, proxy_auth = _aiohttp_proxy()
+    return {}, {"proxy": proxy, "proxy_auth": proxy_auth}
+
+
 def _playwright_proxy() -> dict | None:
     """Возвращает конфиг proxy для Playwright из config.PROXY_URL (или None)."""
     if not config.PROXY_URL:
@@ -162,9 +184,9 @@ class BaseParser(abc.ABC):
         """GET статической страницы. Возвращает HTML/текст."""
         await self._polite_delay()
         timeout = aiohttp.ClientTimeout(total=25)
-        proxy, proxy_auth = _aiohttp_proxy()
-        async with aiohttp.ClientSession(headers=self._headers(), timeout=timeout) as session:
-            async with session.get(url, params=params, proxy=proxy, proxy_auth=proxy_auth) as resp:
+        skw, rkw = _session_kwargs()
+        async with aiohttp.ClientSession(headers=self._headers(), timeout=timeout, **skw) as session:
+            async with session.get(url, params=params, **rkw) as resp:
                 resp.raise_for_status()
                 return await resp.text()
 
@@ -177,9 +199,9 @@ class BaseParser(abc.ABC):
         hdrs["Accept"] = "application/json"
         if headers:
             hdrs.update(headers)
-        proxy, proxy_auth = _aiohttp_proxy()
-        async with aiohttp.ClientSession(headers=hdrs, timeout=timeout) as session:
-            async with session.get(url, params=params, proxy=proxy, proxy_auth=proxy_auth) as resp:
+        skw, rkw = _session_kwargs()
+        async with aiohttp.ClientSession(headers=hdrs, timeout=timeout, **skw) as session:
+            async with session.get(url, params=params, **rkw) as resp:
                 resp.raise_for_status()
                 return await resp.json()
 

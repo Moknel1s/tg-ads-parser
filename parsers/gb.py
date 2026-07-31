@@ -71,3 +71,20 @@ class YunoJunoParser(ConfigurableHTMLParser):
     TITLE_SELECTOR = "a, h3"
     PRICE_SELECTOR = ".rate, .price"
     DESC_SELECTOR = ".description"
+
+
+class ReedParser(ConfigurableHTMLParser):
+    # Доска ВАКАНСИЙ (UK). Берём раздел «contract» — фильтр найма оставит
+    # только контрактную/проектную работу, штатные вакансии отсеет.
+    name = "reed"
+    title = "Reed.co.uk (contract)"
+    country = "gb"
+    enabled_default = False
+
+    BASE = "https://www.reed.co.uk"
+    LIST_URL = "https://www.reed.co.uk/jobs/contract-web-developer-jobs"
+    CARD_SELECTOR = "article"
+    TITLE_SELECTOR = "a[href*='/jobs/']"
+    LINK_SELECTOR = "a[href*='/jobs/']"
+    PRICE_SELECTOR = "[class*='salary'], .salary"
+    DESC_SELECTOR = "[class*='description']"

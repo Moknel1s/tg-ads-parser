@@ -24,7 +24,13 @@ from .au import AirtaskerParser, IndeedAuParser, SeekParser
 from .avito import AvitoParser, AvitoVacanciesParser
 from .base import Ad, BaseParser, ConfigurableHTMLParser
 from .flru import FLruParser
-from .gb import BarkParser, GumtreeUkParser, PeoplePerHourParser, YunoJunoParser
+from .gb import (
+    BarkParser,
+    GumtreeUkParser,
+    PeoplePerHourParser,
+    ReedParser,
+    YunoJunoParser,
+)
 from .kwork import KworkParser
 from .ru_extra import (
     FreelanceRuParser,
@@ -82,7 +88,7 @@ _ALL: list[type[BaseParser]] = [
     ContraParser, ArcParser, DiceParser, WeWorkRemotelyParser,
     LinkedInParser, WellfoundParser,
     # 🇬🇧 Великобритания
-    PeoplePerHourParser, BarkParser, GumtreeUkParser, YunoJunoParser,
+    PeoplePerHourParser, BarkParser, GumtreeUkParser, YunoJunoParser, ReedParser,
     # 🇦🇺 Австралия
     AirtaskerParser, SeekParser, IndeedAuParser,
 ]

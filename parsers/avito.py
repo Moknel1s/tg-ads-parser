@@ -35,8 +35,8 @@ class AvitoParser(BaseParser):
     name = "avito"
     title = "Avito (услуги)"
     country = "ru"
-    # По умолчанию выключен: сильный антибот, часто отдаёт 0 без прокси.
-    enabled_default = False
+    # Включён по запросу. ВНИМАНИЕ: сильный антибот — без прокси часто 0.
+    enabled_default = True
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
         # Avito без рендера JS не отдаёт объявления — используем playwright

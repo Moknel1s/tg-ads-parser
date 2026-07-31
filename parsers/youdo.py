@@ -1,8 +1,9 @@
 """
 Парсер YouDo (https://youdo.com) — раздел заданий по разработке сайтов.
 
-Внимание: вёрстка YouDo периодически меняется. Все CSS-селекторы вынесены
-в константы вверху файла — если сайт поменяет разметку, поправьте их здесь.
+YouDo отдаёт страницу через JavaScript (статический запрос возвращает почти
+пустой каркас), поэтому рендерим её через playwright. Селекторы вынесены в
+константы — правьте их здесь, если сайт изменит вёрстку.
 """
 from __future__ import annotations
 
@@ -28,7 +29,8 @@ class YouDoParser(BaseParser):
     enabled_default = True
 
     async def fetch(self, keywords: list[str]) -> list[Ad]:
-        html = await self._get_html(LIST_URL)
+        # YouDo — динамический сайт, рендерим через браузер
+        html = await self._get_html_dynamic(LIST_URL, wait_selector=CARD_SELECTOR)
         soup = self.soup(html)
 
         ads: list[Ad] = []

@@ -1,13 +1,12 @@
 """
-Дополнительные площадки России (кроме уже вынесенных в отдельные файлы
+Дополнительные площадки России (кроме вынесенных в отдельные файлы
 hh.py, kwork.py, flru.py, youdo.py, avito.py).
 
-Все парсеры — на базе ConfigurableHTMLParser: сайт описывается набором
-CSS-селекторов в атрибутах класса. Если сайт сменит вёрстку — поправьте
-селекторы здесь.
+Все парсеры включены по умолчанию (enabled_default=True). Сайты с сильным
+антиботом (Workzilla, Профи.ру, Workspace) работают через playwright и без
+прокси/авторизации могут отдавать 0 — это блокировка по IP, а не ошибка кода.
 
-enabled_default=False у сайтов, которым обычно нужны авторизация / прокси /
-проверка селекторов. Их можно включить в .env (например SITE_WORKZILLA=1).
+Селекторы вынесены в атрибуты классов — правьте их здесь при смене вёрстки.
 """
 from __future__ import annotations
 
@@ -21,11 +20,13 @@ class FreelanceRuParser(ConfigurableHTMLParser):
     enabled_default = True
 
     BASE = "https://freelance.ru"
-    LIST_URL = "https://freelance.ru/project/search"
-    CARD_SELECTOR = ".promo, .project, li.project, .fl-project"
-    TITLE_SELECTOR = "a.title, h2 a, a[href*='/project/']"
-    PRICE_SELECTOR = ".cost, .price, .amount"
-    DESC_SELECTOR = ".text, .description, .desc"
+    # Лента заданий (селекторы проверены на живой странице)
+    LIST_URL = "https://freelance.ru/task"
+    CARD_SELECTOR = ".task-card"
+    TITLE_SELECTOR = "a.task-card__title-link"
+    LINK_SELECTOR = "a.task-card__title-link"
+    PRICE_SELECTOR = ".task-card__price"  # без .task-badge (там «Видно всем»)
+    DESC_SELECTOR = ".task-card__desc"
 
 
 class WeblancerParser(ConfigurableHTMLParser):
@@ -43,29 +44,30 @@ class WeblancerParser(ConfigurableHTMLParser):
 
 
 class HabrFreelanceParser(ConfigurableHTMLParser):
+    # ВНИМАНИЕ: Habr Freelance закрыт и переехал в «Фрилансим» (freelansim.ru).
+    # Парсим его. Если сайт недоступен — вернётся пусто (бот не падает).
     name = "habr"
-    title = "Habr Freelance"
+    title = "Habr Freelance / Фрилансим"
     country = "ru"
     enabled_default = True
 
-    BASE = "https://freelance.habr.com"
-    LIST_URL = "https://freelance.habr.com/tasks"
-    CARD_SELECTOR = "article.task, .task, li.task"
-    TITLE_SELECTOR = "a.task__title, .task__title a, h2 a"
+    BASE = "https://freelansim.ru"
+    LIST_URL = "https://freelansim.ru/tasks"
+    CARD_SELECTOR = ".task, .tasks__item, article.task, li.task"
+    TITLE_SELECTOR = "a.task__title, .task__title a, h2 a, a[href*='/tasks/']"
     PRICE_SELECTOR = ".task__finance, .count, .task__price"
     DESC_SELECTOR = ".task__description, .task__text"
 
 
 class WorkzillaParser(ConfigurableHTMLParser):
-    # Обычно требует авторизацию — по умолчанию выключен.
     name = "workzilla"
     title = "Workzilla"
     country = "ru"
-    enabled_default = False
+    enabled_default = True
 
     BASE = "https://workzilla.com"
     LIST_URL = "https://workzilla.com/freelancer/tasks"
-    USE_DYNAMIC = True
+    USE_DYNAMIC = True  # рендерится через JS, часто требует вход
     CARD_SELECTOR = ".task-card, .task, [data-task]"
     TITLE_SELECTOR = "a.task-card__title, .task-title a, a[href*='/task/']"
     PRICE_SELECTOR = ".task-card__price, .price"
@@ -73,31 +75,31 @@ class WorkzillaParser(ConfigurableHTMLParser):
 
 
 class ProfiRuParser(ConfigurableHTMLParser):
-    # Сильный антибот/JS — по умолчанию выключен.
     name = "profiru"
     title = "Профи.ру"
     country = "ru"
-    enabled_default = False
+    enabled_default = True
 
     BASE = "https://profi.ru"
-    LIST_URL = "https://profi.ru/backoffice/n.php"  # раздел заказов (нужна проверка)
+    # Публичный каталог заказов у Профи.ру ограничен — без авторизации часто пусто.
+    LIST_URL = "https://profi.ru/orders/"
     USE_DYNAMIC = True
-    CARD_SELECTOR = "[data-shmid], .order, .snippet"
-    TITLE_SELECTOR = "a, .title"
+    CARD_SELECTOR = "[data-shmid], .order, .snippet, article"
+    TITLE_SELECTOR = "a, .title, h3"
     PRICE_SELECTOR = ".price, .cost"
     DESC_SELECTOR = ".description, .text"
 
 
 class WorkspaceParser(ConfigurableHTMLParser):
-    # Тендеры на digital — часто нужна авторизация. По умолчанию выключен.
     name = "workspace"
     title = "Workspace.ru (тендеры)"
     country = "ru"
-    enabled_default = False
+    enabled_default = True
 
     BASE = "https://workspace.ru"
     LIST_URL = "https://workspace.ru/tenders/"
-    CARD_SELECTOR = ".tender, .b-tender, .tenders-item"
+    USE_DYNAMIC = True  # антибот на статическом запросе (403) — пробуем через браузер
+    CARD_SELECTOR = ".tender, .b-tender, .tenders-item, article"
     TITLE_SELECTOR = "a.tender__title, h3 a, a[href*='/tenders/']"
     PRICE_SELECTOR = ".tender__budget, .budget, .price"
     DESC_SELECTOR = ".tender__desc, .description"

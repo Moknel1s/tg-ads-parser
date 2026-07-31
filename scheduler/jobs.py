@@ -75,24 +75,28 @@ def is_relevant(ad: Ad, keywords: list[str]) -> bool:
 #  Форматирование и отправка сообщения
 # ---------------------------------------------------------------------------
 def format_message(ad: Ad) -> str:
-    """Собирает сообщение по объявлению с флагом страны источника."""
+    """
+    Прежний (компактный) формат сообщения + флаг страны источника
+    в начале заголовка.
+    """
     flag = config.country_flag(ad.country)
     source = SOURCE_TITLES.get(ad.source, ad.source)
+    title = html.escape(ad.title)
 
-    lines = [f"{flag} <b>Новое объявление</b>", ""]
-    lines.append(f"<b>Источник:</b> {html.escape(source)}")
-    lines.append(f"<b>Заголовок:</b> {html.escape(ad.title)}")
+    lines = [f"{flag} 🆕 <b>{title}</b>", ""]
 
     if ad.description:
         desc = ad.description.strip()
         if len(desc) > 400:
             desc = desc[:400].rstrip() + "…"
-        lines.append(f"<b>Краткое описание:</b> {html.escape(desc)}")
+        lines.append(html.escape(desc))
+        lines.append("")
 
-    lines.append(f"<b>Бюджет/цена:</b> {html.escape(ad.price) if ad.price else '—'}")
+    if ad.price:
+        lines.append(f"💰 <b>Бюджет:</b> {html.escape(ad.price)}")
 
-    if ad.url:
-        lines.append(f"<b>Ссылка:</b> {html.escape(ad.url)}")
+    lines.append(f"🌐 <b>Источник:</b> {html.escape(source)}")
+    lines.append(f"🕒 <b>Найдено:</b> {ad.found_at.strftime('%d.%m.%Y %H:%M')}")
 
     return "\n".join(lines)
 

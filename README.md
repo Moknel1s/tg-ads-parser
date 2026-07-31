@@ -162,16 +162,22 @@ python main.py
 
 | Страна | ✅ Включены по умолчанию | ⚪️ Выключены (нужны ключи/прокси/проверка) |
 |---|---|---|
-| 🇷🇺 | HH.ru, Kwork, FL.ru, YouDo, Freelance.ru, Weblancer, Habr Freelance | Avito, Workzilla, Профи.ру, Workspace.ru |
+| 🇷🇺 | **Все 10 сайтов + HH**: FL.ru, Kwork, Freelance.ru, Workzilla, YouDo, Weblancer, Avito, Профи.ру, Workspace.ru, Habr/Фрилансим, HH.ru | — |
 | 🇺🇿 | OLX.uz | Dowork, UZITHUB, Giglancer, Worklance, EDC.Sale, InfoShop |
 | 🇺🇸 | Reddit (r/forhire…), Craigslist | Upwork, Fiverr, Freelancer.com, Guru, Thumbtack |
 | 🇬🇧 | — | PeoplePerHour, Bark, Gumtree, YunoJuno |
 | 🇦🇺 | — | Airtasker, SEEK, Indeed |
 
-Заметки:
-- **Наиболее надёжны**: Kwork и HH (JSON/официальный API), Reddit (публичный JSON),
-  FL.ru. Selector-парсеры (Weblancer, Freelance.ru, Habr, OLX.uz) могут требовать
-  правки селекторов при смене вёрстки — они вынесены в атрибуты классов.
+Заметки по России:
+- **Стабильно работают**: Kwork, FL.ru, Freelance.ru (JSON/HTML), HH (API).
+- **Через playwright** (нужен `playwright install chromium`): YouDo, Avito,
+  Workzilla, Профи.ру, Workspace.ru. Без прокси/авторизации они часто отдают 0
+  из-за антибота — это блокировка, а не ошибка; бот при этом не падает.
+- **Habr Freelance закрыт** и переехал в **Фрилансим (freelansim.ru)** — парсим его.
+- Selector-парсеры могут требовать правки селекторов при смене вёрстки — они
+  вынесены в атрибуты классов (см. `parsers/ru_extra.py`).
+
+Прочее:
 - **Глобальные маркетплейсы** (Upwork, Fiverr, Freelancer.com) зарегистрированы
   один раз (в `us.py`) и покрывают в т.ч. GB/AU — чтобы не плодить дубли.
 - **Telegram-каналы** как источник в этой версии не реализованы: для чтения

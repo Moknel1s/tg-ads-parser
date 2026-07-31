@@ -15,15 +15,16 @@ from __future__ import annotations
 import html
 import logging
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 import config
+from bot.keyboards import actions_keyboard
 from config import TARGET_CHAT_ID
 from database import db
 from parsers import all_sites
-from scheduler.jobs import LAST_RUN_STATS, run_parsing
+from scheduler.jobs import FORCE_SEND_LIMIT, LAST_RUN_STATS, run_parsing
 
 log = logging.getLogger(__name__)
 
@@ -48,10 +49,11 @@ async def cmd_start(message: Message) -> None:
         "/keywords — ключевые слова услуг\n"
         "/add_keyword &lt;слово&gt; — добавить\n"
         "/del_keyword &lt;слово&gt; — удалить\n"
-        "/parse_now — проверить прямо сейчас\n\n"
+        "/parse_now — проверить прямо сейчас\n"
+        "/parse_all — показать все подходящие (даже отправленные)\n\n"
         "🔎 Парсинг запускается автоматически каждые несколько минут."
     )
-    await message.answer(text)
+    await message.answer(text, reply_markup=actions_keyboard())
 
 
 # ---------------------------------------------------------------------------
@@ -135,14 +137,62 @@ async def cmd_del_keyword(message: Message, command: CommandObject) -> None:
 
 
 # ---------------------------------------------------------------------------
-#  /parse_now
+#  /parse_now и /parse_all (+ кнопки)
 # ---------------------------------------------------------------------------
+async def _run_and_report(message: Message, force: bool) -> None:
+    """
+    Общий помощник: запускает парсинг и отчитывается о результате.
+    force=True — «показать всё» (в т.ч. уже отправленные объявления).
+    Служебные сообщения идут в тот чат, откуда вызвали; сами объявления —
+    в TARGET_CHAT_ID.
+    """
+    if force:
+        await message.answer(
+            "📋 Собираю <b>все</b> подходящие объявления "
+            "(в т.ч. уже отправленные)… Это может занять до минуты."
+        )
+    else:
+        await message.answer("🔄 Запускаю проверку сайтов прямо сейчас…")
+
+    target = TARGET_CHAT_ID or message.chat.id
+    count = await run_parsing(message.bot, target, force=force)
+
+    if force:
+        note = f"\n<i>(показаны первые {FORCE_SEND_LIMIT} — лимит за один раз)</i>" \
+            if count >= FORCE_SEND_LIMIT else ""
+        await message.answer(
+            f"✅ Готово. Отправлено объявлений: <b>{count}</b>{note}",
+            reply_markup=actions_keyboard(),
+        )
+    else:
+        await message.answer(
+            f"✅ Готово. Новых объявлений: <b>{count}</b>",
+            reply_markup=actions_keyboard(),
+        )
+
+
 @router.message(Command("parse_now"))
 async def cmd_parse_now(message: Message) -> None:
-    await message.answer("🔄 Запускаю проверку сайтов прямо сейчас…")
-    target = TARGET_CHAT_ID or message.chat.id
-    new_count = await run_parsing(message.bot, target)
-    await message.answer(f"✅ Готово. Новых объявлений: <b>{new_count}</b>")
+    await _run_and_report(message, force=False)
+
+
+@router.message(Command("parse_all"))
+async def cmd_parse_all(message: Message) -> None:
+    await _run_and_report(message, force=True)
+
+
+@router.callback_query(F.data == "parse_now")
+async def cb_parse_now(call: CallbackQuery) -> None:
+    await call.answer("Запускаю…")
+    if call.message:
+        await _run_and_report(call.message, force=False)
+
+
+@router.callback_query(F.data == "parse_all")
+async def cb_parse_all(call: CallbackQuery) -> None:
+    await call.answer("Собираю все объявления…")
+    if call.message:
+        await _run_and_report(call.message, force=True)
 
 
 # ---------------------------------------------------------------------------

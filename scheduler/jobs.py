@@ -156,10 +156,21 @@ async def _send_ad(bot: Bot, chat_id: int, ad: Ad) -> bool:
 # ---------------------------------------------------------------------------
 #  Основной проход парсинга
 # ---------------------------------------------------------------------------
-async def run_parsing(bot: Bot, target_chat_id: int) -> int:
+# Ограничение на разовую принудительную выгрузку «показать всё», чтобы не
+# завалить чат сотнями сообщений и не поймать флуд-контроль Telegram.
+FORCE_SEND_LIMIT = 50
+
+
+async def run_parsing(bot: Bot, target_chat_id: int, force: bool = False) -> int:
     """
     Один полный проход парсинга. Объявления идут в target_chat_id.
-    Возвращает количество новых отправленных объявлений.
+
+    force=False — обычный режим: только НОВЫЕ объявления (с защитой от дублей).
+    force=True  — «показать всё»: шлёт все подходящие объявления, даже уже
+                  отправленные (защита от дублей игнорируется), но не более
+                  FORCE_SEND_LIMIT штук за раз.
+
+    Возвращает количество отправленных объявлений.
     """
     if _lock.locked():
         log.info("Парсинг уже выполняется — пропускаю повторный запуск.")
@@ -167,7 +178,7 @@ async def run_parsing(bot: Bot, target_chat_id: int) -> int:
 
     async with _lock:
         started = datetime.now()
-        log.info("=== Старт парсинга ===")
+        log.info("=== Старт парсинга (force=%s) ===", force)
 
         keywords = await db.get_keywords()
         parsers = [p for p in get_parsers() if p.enabled]
@@ -176,28 +187,41 @@ async def run_parsing(bot: Bot, target_chat_id: int) -> int:
         results = await asyncio.gather(*(p.safe_fetch(keywords) for p in parsers))
 
         LAST_RUN_STATS.clear()
-        new_count = 0
 
+        # 1) собираем релевантные объявления, убирая дубли внутри этого прохода
+        to_send: list[Ad] = []
+        seen_uids: set[str] = set()
         for parser, ads in zip(parsers, results):
             LAST_RUN_STATS[parser.name] = len(ads)
-
             for ad in ads:
-                # 1) фильтр «только услуги Loomis»
                 if not is_relevant(ad, keywords):
                     continue
-                # 2) защита от дублей (по ссылке)
-                if await db.is_seen(ad.uid):
+                if ad.uid in seen_uids:
                     continue
-                # 3) отправляем; помечаем «увиденным» только при успешной доставке
-                sent = await _send_ad(bot, target_chat_id, ad)
-                if sent:
-                    await db.mark_seen(ad.uid, ad.source, ad.title, ad.url, ad.price)
-                    new_count += 1
-                    await asyncio.sleep(random.uniform(0.4, 0.9))
+                seen_uids.add(ad.uid)
+                # в обычном режиме пропускаем уже отправленные; в force — нет
+                if not force and await db.is_seen(ad.uid):
+                    continue
+                to_send.append(ad)
+
+        # 2) в режиме «показать всё» ограничиваем объём
+        if force and len(to_send) > FORCE_SEND_LIMIT:
+            log.info("force: найдено %d, показываю первые %d", len(to_send), FORCE_SEND_LIMIT)
+            to_send = to_send[:FORCE_SEND_LIMIT]
+
+        # 3) отправляем
+        new_count = 0
+        for ad in to_send:
+            sent = await _send_ad(bot, target_chat_id, ad)
+            if sent:
+                # mark_seen идемпотентен (INSERT OR IGNORE) — для force не мешает
+                await db.mark_seen(ad.uid, ad.source, ad.title, ad.url, ad.price)
+                new_count += 1
+                await asyncio.sleep(random.uniform(0.4, 0.9))
 
         await db.set_last_parse(started)
         elapsed = (datetime.now() - started).total_seconds()
-        log.info("=== Парсинг завершён: %d новых за %.1f c ===", new_count, elapsed)
+        log.info("=== Парсинг завершён: %d отправлено за %.1f c ===", new_count, elapsed)
         return new_count
 
 
